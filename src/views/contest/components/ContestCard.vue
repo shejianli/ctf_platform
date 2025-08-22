@@ -49,7 +49,7 @@
       </div>
 
       <div v-if="type === 'finished' && contest.winner" class="winner-info">
-        <icon-crown />
+        <icon-trophy />
         <span>冠军：{{ contest.winner }}</span>
       </div>
     </div>
@@ -92,8 +92,7 @@ import {
   IconClockCircle, 
   IconUserGroup, 
   IconTrophy, 
-  IconUser,
-  IconCrown
+  IconUser
 } from '@arco-design/web-vue/es/icon'
 
 const props = defineProps({

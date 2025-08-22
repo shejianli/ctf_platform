@@ -1,300 +1,274 @@
 <template>
   <div class="practice-container">
-    <div class="header">
-      <h1>练习场</h1>
-      <p>提升你的CTF技能，挑战各种类型的题目</p>
-    </div>
-
-    <div class="filters">
-      <!-- 搜索框 -->
-      <div class="search-section">
-        <a-input 
+    <div class="header-row">
+      <div class="header-left">
+        <h1>练习场</h1>
+        <p>提升你的CTF技能，挑战各种类型的题目</p>
+      </div>
+      
+      <div class="header-right">
+        <a-input-search 
           v-model="filters.search" 
           placeholder="搜索题目..." 
           allow-clear
           size="large"
           class="search-input"
+          search-button
+          button-text="查询"
+          @search="onSearch"
         >
           <template #prefix>
             <icon-search />
           </template>
-        </a-input>
+        </a-input-search>
       </div>
+    </div>
 
-      <!-- 分类筛选 -->
-      <div class="filter-section">
-        <h4 class="filter-title">题目分类</h4>
-        <div class="filter-options">
-          <div 
-            class="filter-option"
-            :class="{ active: filters.category === '' }"
-            @click="filters.category = ''"
-            :style="filters.category === '' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
+    <div class="filters">
+
+        
+
+
+      <!-- 筛选条件 -->
+      <div class="filter-sections">
+        <div class="filter-section">
+          <span class="filter-label">题目分类</span>
+          <a-tabs 
+            v-model:active-key="filters.category" 
+            size="small"
+            @change="onCategoryChange"
+            class="filter-tabs"
           >
-            <span class="option-icon">📋</span>
-            <span class="option-text">全部</span>
-          </div>
-          <div 
-            class="filter-option"
-            :class="{ active: filters.category === 'web' }"
-            @click="filters.category = 'web'"
-            :style="filters.category === 'web' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
-          >
-            <span class="option-icon">🌐</span>
-            <span class="option-text">Web安全</span>
-          </div>
-          <div 
-            class="filter-option"
-            :class="{ active: filters.category === 'crypto' }"
-            @click="filters.category = 'crypto'"
-            :style="filters.category === 'crypto' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
-          >
-            <span class="option-icon">🔐</span>
-            <span class="option-text">密码学</span>
-          </div>
-          <div 
-            class="filter-option"
-            :class="{ active: filters.category === 'pwn' }"
-            @click="filters.category = 'pwn'"
-            :style="filters.category === 'pwn' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
-          >
-            <span class="option-icon">⚡</span>
-            <span class="option-text">二进制漏洞</span>
-          </div>
-          <div 
-            class="filter-option"
-            :class="{ active: filters.category === 'misc' }"
-            @click="filters.category = 'misc'"
-            :style="filters.category === 'misc' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
-          >
-            <span class="option-icon">🎯</span>
-            <span class="option-text">杂项</span>
-          </div>
-          <div 
-            class="filter-option"
-            :class="{ active: filters.category === 'reverse' }"
-            @click="filters.category = 'reverse'"
-            :style="filters.category === 'reverse' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
-          >
-            <span class="option-icon">🔄</span>
-            <span class="option-text">逆向工程</span>
-          </div>
+            <a-tab-pane key="" title="全部"></a-tab-pane>
+            <a-tab-pane key="web" title="Web安全"></a-tab-pane>
+            <a-tab-pane key="crypto" title="密码学"></a-tab-pane>
+            <a-tab-pane key="pwn" title="二进制漏洞"></a-tab-pane>
+            <a-tab-pane key="misc" title="杂项"></a-tab-pane>
+            <a-tab-pane key="reverse" title="逆向工程"></a-tab-pane>
+          </a-tabs>
         </div>
-      </div>
 
-      <!-- 难度筛选 -->
-      <div class="filter-section">
-        <h4 class="filter-title">难度等级</h4>
-        <div class="filter-options">
-          <div 
-            class="filter-option"
-            :class="{ active: filters.difficulty === '' }"
-            @click="filters.difficulty = ''"
-            :style="filters.difficulty === '' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
+        <div class="filter-section">
+          <span class="filter-label">难度等级</span>
+          <a-tabs 
+            v-model:active-key="filters.difficulty" 
+            size="small"
+            @change="onDifficultyChange"
+            class="filter-tabs"
           >
-            <span class="option-icon">📊</span>
-            <span class="option-text">全部</span>
-          </div>
-          <div 
-            class="filter-option difficulty-easy"
-            :class="{ active: filters.difficulty === 'easy' }"
-            @click="filters.difficulty = 'easy'"
-            :style="filters.difficulty === 'easy' ? 'background: #52c41a; color: white; border-color: #52c41a;' : ''"
-          >
-            <span class="option-icon">🟢</span>
-            <span class="option-text">简单</span>
-          </div>
-          <div 
-            class="filter-option difficulty-medium"
-            :class="{ active: filters.difficulty === 'medium' }"
-            @click="filters.difficulty = 'medium'"
-            :style="filters.difficulty === 'medium' ? 'background: #fa8c16; color: white; border-color: #fa8c16;' : ''"
-          >
-            <span class="option-icon">🟡</span>
-            <span class="option-text">中等</span>
-          </div>
-          <div 
-            class="filter-option difficulty-hard"
-            :class="{ active: filters.difficulty === 'hard' }"
-            @click="filters.difficulty = 'hard'"
-            :style="filters.difficulty === 'hard' ? 'background: #f5222d; color: white; border-color: #f5222d;' : ''"
-          >
-            <span class="option-icon">🔴</span>
-            <span class="option-text">困难</span>
-          </div>
+            <a-tab-pane key="" title="全部"></a-tab-pane>
+            <a-tab-pane key="easy" title="简单"></a-tab-pane>
+            <a-tab-pane key="medium" title="中等"></a-tab-pane>
+            <a-tab-pane key="hard" title="困难"></a-tab-pane>
+          </a-tabs>
         </div>
-      </div>
 
-      <!-- 分数筛选 -->
-      <div class="filter-section">
-        <h4 class="filter-title">分数范围</h4>
-        <div class="filter-options">
-          <div 
-            class="filter-option"
-            :class="{ active: filters.scoreRange === '' }"
-            @click="filters.scoreRange = ''"
-            :style="filters.scoreRange === '' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
+        <div class="filter-section">
+          <span class="filter-label">分数范围</span>
+          <a-tabs 
+            v-model:active-key="filters.scoreRange" 
+            size="small"
+            @change="onScoreChange"
+            class="filter-tabs"
           >
-            <span class="option-icon">💯</span>
-            <span class="option-text">全部</span>
-          </div>
-          <div 
-            class="filter-option"
-            :class="{ active: filters.scoreRange === '0-100' }"
-            @click="filters.scoreRange = '0-100'"
-            :style="filters.scoreRange === '0-100' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
-          >
-            <span class="option-icon">🥉</span>
-            <span class="option-text">0-100分</span>
-          </div>
-          <div 
-            class="filter-option"
-            :class="{ active: filters.scoreRange === '100-200' }"
-            @click="filters.scoreRange = '100-200'"
-            :style="filters.scoreRange === '100-200' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
-          >
-            <span class="option-icon">🥈</span>
-            <span class="option-text">100-200分</span>
-          </div>
-          <div 
-            class="filter-option"
-            :class="{ active: filters.scoreRange === '200-300' }"
-            @click="filters.scoreRange = '200-300'"
-            :style="filters.scoreRange === '200-300' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
-          >
-            <span class="option-icon">🥇</span>
-            <span class="option-text">200-300分</span>
-          </div>
-          <div 
-            class="filter-option"
-            :class="{ active: filters.scoreRange === '300+' }"
-            @click="filters.scoreRange = '300+'"
-            :style="filters.scoreRange === '300+' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
-          >
-            <span class="option-icon">👑</span>
-            <span class="option-text">300分以上</span>
-          </div>
+            <a-tab-pane key="" title="全部"></a-tab-pane>
+            <a-tab-pane key="0-100" title="0-100分"></a-tab-pane>
+            <a-tab-pane key="100-200" title="100-200分"></a-tab-pane>
+            <a-tab-pane key="200-300" title="200-300分"></a-tab-pane>
+            <a-tab-pane key="300+" title="300分以上"></a-tab-pane>
+          </a-tabs>
         </div>
-      </div>
 
-      <!-- 状态筛选 -->
-      <div class="filter-section">
-        <h4 class="filter-title">完成状态</h4>
-        <div class="filter-options">
-          <div 
-            class="filter-option"
-            :class="{ active: filters.status === '' }"
-            @click="filters.status = ''"
-            :style="filters.status === '' ? 'background: var(--color-primary-6); color: white; border-color: var(--color-primary-6);' : ''"
+        <div class="filter-section">
+          <span class="filter-label">完成状态</span>
+          <a-tabs 
+            v-model:active-key="filters.status" 
+            size="small"
+            @change="onStatusChange"
+            class="filter-tabs"
           >
-            <span class="option-icon">📝</span>
-            <span class="option-text">全部</span>
-          </div>
-          <div 
-            class="filter-option status-unsolved"
-            :class="{ active: filters.status === 'unsolved' }"
-            @click="filters.status = 'unsolved'"
-            :style="filters.status === 'unsolved' ? 'background: #8c8c8c; color: white; border-color: #8c8c8c;' : ''"
-          >
-            <span class="option-icon">⭕</span>
-            <span class="option-text">未解决</span>
-          </div>
-          <div 
-            class="filter-option status-attempted"
-            :class="{ active: filters.status === 'attempted' }"
-            @click="filters.status = 'attempted'"
-            :style="filters.status === 'attempted' ? 'background: #fa8c16; color: white; border-color: #fa8c16;' : ''"
-          >
-            <span class="option-icon">⏳</span>
-            <span class="option-text">已尝试</span>
-          </div>
-          <div 
-            class="filter-option status-solved"
-            :class="{ active: filters.status === 'solved' }"
-            @click="filters.status = 'solved'"
-            :style="filters.status === 'solved' ? 'background: #52c41a; color: white; border-color: #52c41a;' : ''"
-          >
-            <span class="option-icon">✅</span>
-            <span class="option-text">已解决</span>
-          </div>
+            <a-tab-pane key="" title="全部"></a-tab-pane>
+            <a-tab-pane key="unsolved" title="未解决"></a-tab-pane>
+            <a-tab-pane key="attempted" title="已尝试"></a-tab-pane>
+            <a-tab-pane key="solved" title="已解决"></a-tab-pane>
+          </a-tabs>
         </div>
       </div>
     </div>
 
-    <div class="challenges-grid">
-      <a-row :gutter="[12, 12]">
-        <a-col 
-          v-for="challenge in filteredChallenges" 
-          :key="challenge.id" 
-          :xxl="4"
-          :xl="5"
-          :lg="6"
-          :md="8"
-          :sm="12"
-          :xs="24"
-        >
-          <a-card 
-            class="challenge-card" 
-            hoverable
-            :size="'small'"
-            @click="openChallenge(challenge)"
+ 
+    <div class="practice-main">
+      <div class="challenges-section">
+        <div class="challenges-grid">
+          <a-row :gutter="[12, 12]">
+            <a-col 
+              v-for="challenge in filteredChallenges" 
+              :key="challenge.id" 
+              :xxl="6"
+              :xl="8"
+              :lg="12"
+              :md="12"
+              :sm="24"
+              :xs="24"
+            >
+              <a-card 
+                class="challenge-card" 
+                hoverable
+                :size="'small'"
+                @click="openChallenge(challenge)"
+              >
+                <template #cover>
+                  <div class="challenge-cover">
+                  </div>
+                </template>
+                
+                <div class="challenge-content">
+                  <div class="challenge-header-row">
+                    <h4 class="challenge-title">{{ challenge.title }}</h4>
+                    <a-tag 
+                      :color="getCategoryColor(challenge.category)" 
+                      size="small"
+                      class="category-tag-header"
+                    >
+                      {{ getCategoryName(challenge.category) }}
+                    </a-tag>
+                  </div>
+                  <p class="challenge-description">{{ challenge.description }}</p>
+                  
+                  <div class="challenge-meta">
+                    <span class="challenge-points">
+                      <icon-trophy />
+                      {{ challenge.points }}分
+                    </span>
+                    <span class="challenge-solved">
+                      <icon-user />
+                      {{ challenge.solved }}人
+                    </span>
+                  </div>
+                </div>
+              </a-card>
+            </a-col>
+          </a-row>
+        </div>
+
+        <div class="pagination-wrapper">
+          <a-pagination
+            v-model:current="pagination.current"
+            v-model:page-size="pagination.pageSize"
+            :total="pagination.total"
+            show-size-changer
+            show-jumper
+            show-total
+          />
+        </div>
+      </div>
+
+      <!-- 右侧解题动态 -->
+      <div class="solving-dynamics">
+        <div class="dynamics-header">
+          <h3>🔥 解题动态</h3>
+          <a-button type="text" size="small" @click="refreshDynamics">
+            <icon-refresh />
+          </a-button>
+        </div>
+        
+        <div class="dynamics-list">
+          <div 
+            v-for="dynamic in solvingDynamics" 
+            :key="dynamic.id" 
+            class="dynamic-item"
+            :class="dynamic.type"
           >
-            <template #cover>
-              <div class="challenge-cover">
-                <div class="category-tag" :class="challenge.category">
-                  {{ getCategoryName(challenge.category) }}
-                </div>
-                <div class="difficulty-badge" :class="challenge.difficulty">
-                  {{ getDifficultyName(challenge.difficulty) }}
-                </div>
+            <div class="dynamic-avatar">
+              <a-avatar :size="32" :src="dynamic.userAvatar">
+                {{ dynamic.userName.charAt(0) }}
+              </a-avatar>
+            </div>
+            <div class="dynamic-content">
+              <div class="dynamic-user">{{ dynamic.userName }}</div>
+              <div class="dynamic-action">
+                <span v-if="dynamic.type === 'solved'">解出了</span>
+                <span v-else-if="dynamic.type === 'attempted'">尝试了</span>
+                <span v-else-if="dynamic.type === 'first-blood'">首杀</span>
+                <span class="challenge-name">{{ dynamic.challengeName }}</span>
               </div>
-            </template>
-            
-            <div class="challenge-content">
-              <div class="challenge-header-row">
-                <h4 class="challenge-title">{{ challenge.title }}</h4>
-                <a-tag 
-                  :color="getStatusColor(challenge.status)" 
-                  size="small"
-                  class="status-tag"
-                >
-                  {{ getStatusText(challenge.status) }}
-                </a-tag>
-              </div>
-              <p class="challenge-description">{{ challenge.description }}</p>
-              
-              <div class="challenge-meta">
-                <span class="challenge-points">
-                  <icon-trophy />
-                  {{ challenge.points }}分
-                </span>
-                <span class="challenge-solved">
-                  <icon-user />
-                  {{ challenge.solved }}人
-                </span>
+              <div class="dynamic-time">{{ formatTimeAgo(dynamic.timestamp) }}</div>
+            </div>
+            <div class="dynamic-badge" :class="dynamic.type">
+              <icon-trophy v-if="dynamic.type === 'solved' || dynamic.type === 'first-blood'" />
+              <icon-clock-circle v-else />
+            </div>
+          </div>
+        </div>
+
+        <div class="dynamics-footer">
+          <a-button type="text" size="small" @click="viewAllDynamics">
+            查看全部动态
+          </a-button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 题目弹窗 -->
+    <a-modal
+      v-model:visible="isChallengeModalVisible"
+      :title="selectedChallenge ? selectedChallenge.title : '题目'"
+      :width="680"
+      :footer="false"
+      unmount-on-close
+      @close="onCloseChallenge"
+    >
+      <div v-if="selectedChallenge" class="challenge-modal">
+        <div class="modal-header">
+          <a-tag size="small">{{ getCategoryName(selectedChallenge.category) }}</a-tag>
+          <a-tag size="small" :color="getStatusColor(selectedChallenge.status)" class="ml8">{{ getStatusText(selectedChallenge.status) }}</a-tag>
+          <a-tag size="small" class="ml8">{{ getDifficultyName(selectedChallenge.difficulty) }}</a-tag>
+          <a-tag size="small" class="ml8"><icon-trophy /> {{ selectedChallenge.points }}分</a-tag>
+        </div>
+
+        <div class="modal-body">
+          <p class="desc">{{ selectedChallenge.description }}</p>
+
+          <!-- 动态/静态 Flag 区分 -->
+          <a-alert v-if="selectedChallenge.type === 'dynamic'" type="warning" show-icon class="mb12">
+            本题为动态 Flag，倒计时结束后实例将失效。
+          </a-alert>
+          <a-alert v-else type="info" show-icon class="mb12">
+            本题为静态 Flag，请下载附件或阅读描述完成解题。
+          </a-alert>
+
+          <!-- 动态 Flag 计时器 -->
+          <div v-if="selectedChallenge.type === 'dynamic'" class="timer">
+            <span>剩余时间：</span>
+            <span class="time">{{ formatTime(remainingSec) }}</span>
+            <a-button size="mini" type="text" class="ml8" @click="resetTimer">重置</a-button>
+          </div>
+
+          <!-- 静态 Flag 附件列表 -->
+          <div v-else-if="selectedChallenge.attachments && selectedChallenge.attachments.length" class="attachments">
+            <h5>附件下载</h5>
+            <div class="attachment-list">
+              <div class="attachment-item" v-for="(file, idx) in selectedChallenge.attachments" :key="idx">
+                <span class="file-name">{{ file.name }}</span>
+                <a-button type="primary" size="small" @click="downloadAttachment(file)">下载</a-button>
               </div>
             </div>
-          </a-card>
-        </a-col>
-      </a-row>
-    </div>
+          </div>
 
-    <div class="pagination-wrapper">
-      <a-pagination
-        v-model:current="pagination.current"
-        v-model:page-size="pagination.pageSize"
-        :total="pagination.total"
-        show-size-changer
-        show-jumper
-        show-total
-      />
-    </div>
+          <!-- 提交 Flag -->
+          <div class="flag-submit">
+            <a-input v-model="flagInput" placeholder="提交你的 Flag，如 ctf{...}" allow-clear @keyup.enter="submitFlag" />
+            <a-button type="primary" class="ml8" @click="submitFlag">提交</a-button>
+          </div>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { IconSearch, IconTrophy, IconUser } from '@arco-design/web-vue/es/icon'
+import { IconSearch, IconTrophy, IconUser, IconRefresh, IconClockCircle } from '@arco-design/web-vue/es/icon'
 
 // 筛选条件
 const filters = reactive({
@@ -304,6 +278,27 @@ const filters = reactive({
   status: '',
   search: ''
 })
+
+// 筛选条件变化处理函数
+const onCategoryChange = (key) => {
+  filters.category = key
+  resetPagination()
+}
+
+const onDifficultyChange = (key) => {
+  filters.difficulty = key
+  resetPagination()
+}
+
+const onScoreChange = (key) => {
+  filters.scoreRange = key
+  resetPagination()
+}
+
+const onStatusChange = (key) => {
+  filters.status = key
+  resetPagination()
+}
 
 // 分页
 const pagination = reactive({
@@ -322,7 +317,11 @@ const challenges = ref([
     difficulty: 'easy',
     points: 100,
     solved: 156,
-    status: 'solved'
+    status: 'solved',
+    type: 'static',
+    attachments: [
+      { name: '题目说明.pdf', url: '/api/attachments/sql_intro.pdf' }
+    ]
   },
   {
     id: 2,
@@ -332,7 +331,12 @@ const challenges = ref([
     difficulty: 'medium',
     points: 200,
     solved: 89,
-    status: 'attempted'
+    status: 'attempted',
+    type: 'static',
+    attachments: [
+      { name: '公钥.pem', url: '/api/attachments/rsa_pub.pem' },
+      { name: '密文.txt', url: '/api/attachments/rsa_cipher.txt' }
+    ]
   },
   {
     id: 3,
@@ -342,7 +346,9 @@ const challenges = ref([
     difficulty: 'hard',
     points: 300,
     solved: 34,
-    status: 'unsolved'
+    status: 'unsolved',
+    type: 'dynamic',
+    durationSec: 1800
   },
   {
     id: 4,
@@ -352,7 +358,11 @@ const challenges = ref([
     difficulty: 'easy',
     points: 150,
     solved: 102,
-    status: 'solved'
+    status: 'solved',
+    type: 'static',
+    attachments: [
+      { name: 'image.jpg', url: '/api/attachments/stego_image.jpg' }
+    ]
   },
   {
     id: 5,
@@ -362,7 +372,11 @@ const challenges = ref([
     difficulty: 'medium',
     points: 250,
     solved: 67,
-    status: 'unsolved'
+    status: 'unsolved',
+    type: 'static',
+    attachments: [
+      { name: 'demo.apk', url: '/api/attachments/demo.apk' }
+    ]
   },
   {
     id: 6,
@@ -372,7 +386,9 @@ const challenges = ref([
     difficulty: 'medium',
     points: 180,
     solved: 91,
-    status: 'attempted'
+    status: 'attempted',
+    type: 'dynamic',
+    durationSec: 1200
   },
   {
     id: 7,
@@ -382,7 +398,9 @@ const challenges = ref([
     difficulty: 'medium',
     points: 220,
     solved: 75,
-    status: 'unsolved'
+    status: 'unsolved',
+    type: 'static',
+    attachments: []
   },
   {
     id: 8,
@@ -392,7 +410,11 @@ const challenges = ref([
     difficulty: 'hard',
     points: 350,
     solved: 28,
-    status: 'unsolved'
+    status: 'unsolved',
+    type: 'static',
+    attachments: [
+      { name: 'trace.bin', url: '/api/attachments/trace.bin' }
+    ]
   },
   {
     id: 9,
@@ -402,7 +424,9 @@ const challenges = ref([
     difficulty: 'medium',
     points: 280,
     solved: 45,
-    status: 'unsolved'
+    status: 'unsolved',
+    type: 'dynamic',
+    durationSec: 1800
   },
   {
     id: 10,
@@ -412,7 +436,11 @@ const challenges = ref([
     difficulty: 'easy',
     points: 120,
     solved: 89,
-    status: 'solved'
+    status: 'solved',
+    type: 'static',
+    attachments: [
+      { name: 'audio.wav', url: '/api/attachments/audio.wav' }
+    ]
   },
   {
     id: 11,
@@ -422,7 +450,9 @@ const challenges = ref([
     difficulty: 'medium',
     points: 230,
     solved: 67,
-    status: 'attempted'
+    status: 'attempted',
+    type: 'dynamic',
+    durationSec: 900
   },
   {
     id: 12,
@@ -432,7 +462,9 @@ const challenges = ref([
     difficulty: 'hard',
     points: 320,
     solved: 23,
-    status: 'unsolved'
+    status: 'unsolved',
+    type: 'static',
+    attachments: []
   },
   {
     id: 13,
@@ -442,7 +474,9 @@ const challenges = ref([
     difficulty: 'easy',
     points: 80,
     solved: 145,
-    status: 'solved'
+    status: 'solved',
+    type: 'static',
+    attachments: []
   },
   {
     id: 14,
@@ -452,7 +486,9 @@ const challenges = ref([
     difficulty: 'medium',
     points: 190,
     solved: 58,
-    status: 'attempted'
+    status: 'attempted',
+    type: 'dynamic',
+    durationSec: 1200
   },
   {
     id: 15,
@@ -462,7 +498,11 @@ const challenges = ref([
     difficulty: 'hard',
     points: 380,
     solved: 19,
-    status: 'unsolved'
+    status: 'unsolved',
+    type: 'static',
+    attachments: [
+      { name: 'memory.dump', url: '/api/attachments/memory.dump' }
+    ]
   }
 ])
 
@@ -549,6 +589,18 @@ const getStatusText = (status) => {
   return map[status] || '未知'
 }
 
+// 获取分类颜色
+const getCategoryColor = (category) => {
+  const map = {
+    web: 'red',
+    crypto: 'blue',
+    pwn: 'green',
+    misc: 'orange',
+    reverse: 'purple'
+  }
+  return map[category] || 'gray'
+}
+
 // 获取状态颜色
 const getStatusColor = (status) => {
   const map = {
@@ -564,10 +616,171 @@ const resetPagination = () => {
   pagination.current = 1
 }
 
+// 触发搜索（按钮或回车）
+const onSearch = () => {
+  resetPagination()
+}
+
+// 弹窗相关
+const isChallengeModalVisible = ref(false)
+const selectedChallenge = ref(null)
+const flagInput = ref('')
+const remainingSec = ref(0)
+let countdownTimer = null
+
+// 解题动态数据
+const solvingDynamics = ref([
+  {
+    id: 1,
+    userName: 'CTF大师',
+    userAvatar: 'https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/3ee5f13fb09879ecb5185e440cef6eb9.png~tplv-uwbnlip3yd-webp.webp',
+    challengeName: 'SQL注入入门',
+    type: 'first-blood',
+    timestamp: Date.now() - 1000 * 60 * 5 // 5分钟前
+  },
+  {
+    id: 2,
+    userName: '安全小白',
+    userAvatar: '',
+    challengeName: 'RSA加密破解',
+    type: 'solved',
+    timestamp: Date.now() - 1000 * 60 * 15 // 15分钟前
+  },
+  {
+    id: 3,
+    userName: '逆向工程师',
+    userAvatar: '',
+    challengeName: '安卓逆向',
+    type: 'attempted',
+    timestamp: Date.now() - 1000 * 60 * 30 // 30分钟前
+  },
+  {
+    id: 4,
+    userName: 'Web安全专家',
+    userAvatar: '',
+    challengeName: 'XSS挑战',
+    type: 'solved',
+    timestamp: Date.now() - 1000 * 60 * 45 // 45分钟前
+  },
+  {
+    id: 5,
+    userName: '密码学爱好者',
+    userAvatar: '',
+    challengeName: 'AES密码分析',
+    type: 'attempted',
+    timestamp: Date.now() - 1000 * 60 * 60 // 1小时前
+  },
+  {
+    id: 6,
+    userName: 'PWN高手',
+    userAvatar: '',
+    challengeName: '缓冲区溢出',
+    type: 'solved',
+    timestamp: Date.now() - 1000 * 60 * 90 // 1.5小时前
+  }
+])
+
+// 刷新解题动态
+const refreshDynamics = () => {
+  // 模拟添加新的动态
+  const newDynamic = {
+    id: Date.now(),
+    userName: '新用户' + Math.floor(Math.random() * 1000),
+    userAvatar: '',
+    challengeName: challenges.value[Math.floor(Math.random() * challenges.value.length)].title,
+    type: ['solved', 'attempted', 'first-blood'][Math.floor(Math.random() * 3)],
+    timestamp: Date.now()
+  }
+  solvingDynamics.value.unshift(newDynamic)
+  
+  // 保持最多显示10条动态
+  if (solvingDynamics.value.length > 10) {
+    solvingDynamics.value = solvingDynamics.value.slice(0, 10)
+  }
+}
+
+// 查看全部动态
+const viewAllDynamics = () => {
+  console.log('查看全部解题动态')
+  // TODO: 跳转到动态页面或展开更多
+}
+
+// 格式化时间
+const formatTimeAgo = (timestamp) => {
+  const now = Date.now()
+  const diff = now - timestamp
+  
+  if (diff < 1000 * 60) {
+    return '刚刚'
+  } else if (diff < 1000 * 60 * 60) {
+    return Math.floor(diff / (1000 * 60)) + '分钟前'
+  } else if (diff < 1000 * 60 * 60 * 24) {
+    return Math.floor(diff / (1000 * 60 * 60)) + '小时前'
+  } else {
+    return Math.floor(diff / (1000 * 60 * 60 * 24)) + '天前'
+  }
+}
+
 // 打开题目
 const openChallenge = (challenge) => {
-  console.log('打开题目:', challenge)
-  // TODO: 跳转到题目详情页面
+  selectedChallenge.value = challenge
+  flagInput.value = ''
+  isChallengeModalVisible.value = true
+
+  stopTimer()
+  if (challenge.type === 'dynamic') {
+    remainingSec.value = challenge.durationSec || 1800
+    startTimer()
+  } else {
+    remainingSec.value = 0
+  }
+}
+
+const onCloseChallenge = () => {
+  isChallengeModalVisible.value = false
+  stopTimer()
+}
+
+const startTimer = () => {
+  stopTimer()
+  countdownTimer = setInterval(() => {
+    if (remainingSec.value > 0) {
+      remainingSec.value -= 1
+    } else {
+      stopTimer()
+    }
+  }, 1000)
+}
+
+const stopTimer = () => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+}
+
+const resetTimer = () => {
+  if (selectedChallenge.value && selectedChallenge.value.type === 'dynamic') {
+    remainingSec.value = selectedChallenge.value.durationSec || 1800
+    startTimer()
+  }
+}
+
+const formatTime = (total) => {
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const seconds = total % 60
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+}
+
+const downloadAttachment = (file) => {
+  window.open(file.url, '_blank')
+}
+
+const submitFlag = () => {
+  console.log('提交 Flag:', flagInput.value)
+  // TODO: 接口提交校验
 }
 
 onMounted(() => {
@@ -580,20 +793,167 @@ onMounted(() => {
   padding: 20px;
 }
 
-.header {
+.practice-main {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.challenges-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.solving-dynamics {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--color-bg-2);
+  border-radius: 12px;
+  padding: 20px;
+  position: sticky;
+  top: 90px;
+}
+
+.dynamics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.dynamics-header h3 {
+  margin: 0;
+  color: var(--color-text-1);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.dynamics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dynamic-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-bg-1);
+  border-radius: 8px;
+  border-left: 4px solid transparent;
+  transition: all 0.3s;
+}
+
+.dynamic-item:hover {
+  background: var(--color-fill-2);
+  transform: translateX(2px);
+}
+
+.dynamic-item.solved {
+  border-left-color: #52c41a;
+}
+
+.dynamic-item.attempted {
+  border-left-color: #fa8c16;
+}
+
+.dynamic-item.first-blood {
+  border-left-color: #f5222d;
+}
+
+.dynamic-avatar {
+  flex-shrink: 0;
+}
+
+.dynamic-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.dynamic-user {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  margin-bottom: 4px;
+}
+
+.dynamic-action {
+  font-size: 12px;
+  color: var(--color-text-2);
+  margin-bottom: 4px;
+}
+
+.challenge-name {
+  color: var(--color-primary-6);
+  font-weight: 500;
+}
+
+.dynamic-time {
+  font-size: 11px;
+  color: var(--color-text-3);
+}
+
+.dynamic-badge {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.dynamic-badge.solved {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.dynamic-badge.attempted {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.dynamic-badge.first-blood {
+  background: #fff1f0;
+  color: #f5222d;
+}
+
+.dynamics-footer {
+  margin-top: 16px;
   text-align: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 30px;
 }
 
-.header h1 {
+.header-left {
+  flex: 1;
+}
+
+.header-left h1 {
   font-size: 28px;
   color: var(--color-text-1);
   margin-bottom: 8px;
+  margin: 0 0 8px 0;
 }
 
-.header p {
+.header-left p {
   color: var(--color-text-3);
   font-size: 16px;
+  margin: 0;
+}
+
+.header-right {
+  flex-shrink: 0;
+  margin-left: 20px;
 }
 
 .filters {
@@ -603,147 +963,77 @@ onMounted(() => {
   padding: 20px;
 }
 
-.search-section {
-  margin-bottom: 24px;
-}
+
 
 .search-input {
   max-width: 400px;
 }
 
+/* 筛选条件样式 */
+.filter-sections {
+  margin-bottom: 24px;
+}
+
 .filter-section {
-  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 4px;
 }
 
 .filter-section:last-child {
   margin-bottom: 0;
 }
 
-.filter-title {
+.filter-label {
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-1);
-  margin: 0 0 12px 0;
+  white-space: nowrap;
+  min-width: 80px;
 }
 
-.filter-options {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+/* 筛选标签页样式 - 使用ArcoDesign原本样式 */
+.filter-tabs {
+  flex: 1;
 }
 
-.filter-option {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 2px solid var(--color-border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s;
-  background: var(--color-bg-1);
-  user-select: none;
-  color: var(--color-text-2);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+.filter-tabs :deep(.arco-tabs-nav) {
+  margin-bottom: 0;
 }
 
-.filter-option:hover {
-  border-color: var(--color-primary-6);
-  background: var(--color-primary-light-1);
-  transform: translateY(-1px);
+.filter-tabs :deep(.arco-tabs-tab) {
+  margin-right: 4px;
+  padding-bottom: 8px;
 }
 
-.filter-option.active {
-  border-color: var(--color-primary-6) !important;
-  background: var(--color-primary-6) !important;
-  color: white !important;
-  box-shadow: 0 2px 8px rgba(var(--primary-6), 0.3) !important;
+.filter-tabs :deep(.arco-tabs-tab-active) {
+  padding-bottom: 8px;
 }
 
-.filter-option.active .option-icon,
-.filter-option.active .option-text {
-  color: white !important;
-  opacity: 1 !important;
-  visibility: visible !important;
+/* 圆角（胶囊）样式 */
+.search-input :deep(.arco-input-search) {
+  border-radius: 999px 0 0 999px;
+  overflow: visible;
 }
 
-.option-icon {
-  font-size: 14px;
-  color: inherit;
+.search-input :deep(.arco-input-group),
+.search-input :deep(.arco-input-wrapper) {
+  border-radius: 999px 0 0 999px;
 }
 
-.option-text {
-  font-size: 13px;
-  font-weight: 500;
-  color: inherit;
+.search-input :deep(.arco-input) {
+  border-radius: 999px 0 0 999px;
 }
 
-/* 特殊主题样式 */
-.difficulty-easy.active {
-  background: var(--color-success-6) !important;
-  border-color: var(--color-success-6) !important;
-  color: white !important;
+.search-input :deep(.arco-btn) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
 }
 
-.difficulty-easy.active .option-icon,
-.difficulty-easy.active .option-text {
-  color: white !important;
-}
 
-.difficulty-medium.active {
-  background: var(--color-warning-6) !important;
-  border-color: var(--color-warning-6) !important;
-  color: white !important;
-}
-
-.difficulty-medium.active .option-icon,
-.difficulty-medium.active .option-text {
-  color: white !important;
-}
-
-.difficulty-hard.active {
-  background: var(--color-danger-6) !important;
-  border-color: var(--color-danger-6) !important;
-  color: white !important;
-}
-
-.difficulty-hard.active .option-icon,
-.difficulty-hard.active .option-text {
-  color: white !important;
-}
-
-.status-solved.active {
-  background: var(--color-success-6) !important;
-  border-color: var(--color-success-6) !important;
-  color: white !important;
-}
-
-.status-solved.active .option-icon,
-.status-solved.active .option-text {
-  color: white !important;
-}
-
-.status-attempted.active {
-  background: var(--color-warning-6) !important;
-  border-color: var(--color-warning-6) !important;
-  color: white !important;
-}
-
-.status-attempted.active .option-icon,
-.status-attempted.active .option-text {
-  color: white !important;
-}
-
-.status-unsolved.active {
-  background: var(--color-text-3) !important;
-  border-color: var(--color-text-3) !important;
-  color: white !important;
-}
-
-.status-unsolved.active .option-icon,
-.status-unsolved.active .option-text {
-  color: white !important;
-}
 
 .challenges-grid {
   margin-bottom: 30px;
@@ -761,7 +1051,7 @@ onMounted(() => {
 }
 
 .challenge-cover {
-  height: 80px;
+  
   background: linear-gradient(135deg, var(--color-primary-light-1), var(--color-primary-6));
   position: relative;
   display: flex;
@@ -770,14 +1060,14 @@ onMounted(() => {
 }
 
 .challenge-content {
-  padding: 12px;
+  padding: 10px;
 }
 
 .challenge-header-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .challenge-title {
@@ -789,14 +1079,14 @@ onMounted(() => {
   margin-right: 8px;
 }
 
-.status-tag {
+.category-tag-header {
   flex-shrink: 0;
 }
 
 .challenge-description {
   font-size: 12px;
   color: var(--color-text-3);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -810,37 +1100,7 @@ onMounted(() => {
   align-items: center;
 }
 
-.category-tag {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: white;
-}
 
-.category-tag.web { background-color: #ff4757; }
-.category-tag.crypto { background-color: #3742fa; }
-.category-tag.pwn { background-color: #2ed573; }
-.category-tag.misc { background-color: #ffa502; }
-.category-tag.reverse { background-color: #9c88ff; }
-
-.difficulty-badge {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: white;
-}
-
-.difficulty-badge.easy { background-color: #7bed9f; }
-.difficulty-badge.medium { background-color: #ffa502; }
-.difficulty-badge.hard { background-color: #ff4757; }
 
 .challenge-card :deep(.arco-card-actions) {
   display: flex;
@@ -861,5 +1121,57 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   padding: 20px 0;
+}
+
+.challenge-modal .modal-header {
+  display: flex;
+  align-items: center;
+}
+
+.ml8 { margin-left: 8px; }
+.mb12 { margin-bottom: 12px; }
+
+.challenge-modal .desc {
+  color: var(--color-text-2);
+  margin-bottom: 12px;
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.timer .time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-weight: 600;
+  color: #0958d9;
+}
+
+.attachments h5 {
+  margin: 8px 0;
+}
+
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attachment-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--color-bg-2);
+  border-radius: 8px;
+}
+
+.file-name { color: var(--color-text-1); }
+
+.flag-submit {
+  display: flex;
+  align-items: center;
+  margin-top: 16px;
 }
 </style>

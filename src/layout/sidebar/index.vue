@@ -7,20 +7,25 @@
     show-collapse-button
   >
 
-    <sidebar-item v-for="route in routes" :key="route.path" :item="route" parent-path="" />
+    <sidebar-item v-for="route in filteredRoutes" :key="route.path" :item="route" parent-path="" />
   </a-menu>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import SidebarItem from './sidebar-item'
+import { routes } from '@/router'
 
 const $router = useRouter()
+const $route = useRoute()
 
-const routes = computed(() => $router.options.routes.filter(i => !i['hidden']))
+const filteredRoutes = computed(() => routes.filter(i => !i['hidden']))
 
-const openedMenu = computed(() => $router.currentRoute.value.path)
+const openedMenu = computed(() => $route.path)
 
-const to = key => $router.push(key)
+const to = key => {
+  console.log('Navigating to:', key)
+  $router.push(key)
+}
 </script>

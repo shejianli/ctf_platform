@@ -6,7 +6,7 @@
     </div>
 
     <div class="ranking-tabs">
-      <a-tabs v-model:active-key="activeTab" @change="onTabChange">
+      <a-tabs v-model:activeKey="activeTab" @change="onTabChange">
         <a-tab-pane key="personal" title="个人排行">
           <div class="ranking-filters">
             <a-row :gutter="16">
@@ -62,6 +62,8 @@
           </div>
           <ranking-table :data="schoolRanking" type="school" />
         </a-tab-pane>
+        
+
       </a-tabs>
     </div>
 
@@ -214,6 +216,8 @@ const topThree = computed(() => {
   return personalRanking.value.slice(0, 3)
 })
 
+
+
 const onTabChange = (key) => {
   console.log('切换到标签:', key)
 }
@@ -334,4 +338,6 @@ onMounted(() => {
   background: var(--color-bg-2);
   border-radius: 8px;
 }
+
+
 </style>

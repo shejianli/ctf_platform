@@ -5,13 +5,59 @@
       <p>参与精彩的CTF比赛，与全球顶尖选手同台竞技</p>
     </div>
 
+    <!-- 分类筛选 -->
+    <div class="category-filters">
+      <div class="filter-options">
+        <div 
+          class="filter-option"
+          :class="{ active: selectedCategory === '' }"
+          @click="selectedCategory = ''"
+        >
+          <span class="option-icon">🏆</span>
+          <span class="option-text">全部</span>
+        </div>
+        <div 
+          class="filter-option"
+          :class="{ active: selectedCategory === 'emergency' }"
+          @click="selectedCategory = 'emergency'"
+        >
+          <span class="option-icon">🚨</span>
+          <span class="option-text">应急响应</span>
+        </div>
+        <div 
+          class="filter-option"
+          :class="{ active: selectedCategory === 'mixed' }"
+          @click="selectedCategory = 'mixed'"
+        >
+          <span class="option-icon">🔄</span>
+          <span class="option-text">混合模式</span>
+        </div>
+        <div 
+          class="filter-option"
+          :class="{ active: selectedCategory === 'theory' }"
+          @click="selectedCategory = 'theory'"
+        >
+          <span class="option-icon">📚</span>
+          <span class="option-text">理论赛</span>
+        </div>
+        <div 
+          class="filter-option"
+          :class="{ active: selectedCategory === 'solve' }"
+          @click="selectedCategory = 'solve'"
+        >
+          <span class="option-icon">💻</span>
+          <span class="option-text">解题赛</span>
+        </div>
+      </div>
+    </div>
+
     <div class="tabs-wrapper">
       <a-tabs v-model:active-key="activeTab" @change="onTabChange">
         <a-tab-pane key="ongoing" title="进行中">
           <div class="contest-list">
             <a-row :gutter="[16, 16]">
               <a-col 
-                v-for="contest in ongoingContests" 
+                v-for="contest in filteredOngoingContests" 
                 :key="contest.id" 
                 :span="12"
               >
@@ -25,7 +71,7 @@
           <div class="contest-list">
             <a-row :gutter="[16, 16]">
               <a-col 
-                v-for="contest in upcomingContests" 
+                v-for="contest in filteredUpcomingContests" 
                 :key="contest.id" 
                 :span="12"
               >
@@ -39,7 +85,7 @@
           <div class="contest-list">
             <a-row :gutter="[16, 16]">
               <a-col 
-                v-for="contest in finishedContests" 
+                v-for="contest in filteredFinishedContests" 
                 :key="contest.id" 
                 :span="12"
               >
@@ -54,10 +100,26 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import ContestCard from './components/ContestCard.vue'
 
 const activeTab = ref('ongoing')
+const selectedCategory = ref('')
+
+// 分类筛选
+const filterContests = (contests) => {
+  if (!selectedCategory.value) {
+    return contests
+  }
+  return contests.filter(contest => {
+    return contest.contestType === selectedCategory.value
+  })
+}
+
+// 过滤后的比赛列表
+const filteredOngoingContests = computed(() => filterContests(ongoingContests.value))
+const filteredUpcomingContests = computed(() => filterContests(upcomingContests.value))
+const filteredFinishedContests = computed(() => filterContests(finishedContests.value))
 
 // 进行中的比赛
 const ongoingContests = ref([
@@ -72,7 +134,8 @@ const ongoingContests = ref([
     prize: '总奖金池 50,000 元',
     organizer: '教育部网络安全教学指导委员会',
     difficulty: 'medium',
-    categories: ['Web', '密码学', 'PWN', '逆向', '杂项']
+    categories: ['Web', '密码学', 'PWN', '逆向', '杂项'],
+    contestType: 'mixed'
   },
   {
     id: 2,
@@ -85,7 +148,8 @@ const ongoingContests = ref([
     prize: '$10,000 USD',
     organizer: 'HackTheBox',
     difficulty: 'hard',
-    categories: ['Web', 'PWN', '逆向']
+    categories: ['Web', 'PWN', '逆向'],
+    contestType: 'solve'
   }
 ])
 
@@ -102,7 +166,8 @@ const upcomingContests = ref([
     prize: '证书 + 奖品',
     organizer: 'CTF学习社区',
     difficulty: 'easy',
-    categories: ['Web', '密码学', '杂项']
+    categories: ['Web', '密码学', '杂项'],
+    contestType: 'theory'
   },
   {
     id: 4,
@@ -115,7 +180,8 @@ const upcomingContests = ref([
     prize: '实习机会 + 现金奖励',
     organizer: '腾讯安全',
     difficulty: 'hard',
-    categories: ['Web', 'PWN', '移动安全']
+    categories: ['Web', 'PWN', '移动安全'],
+    contestType: 'emergency'
   }
 ])
 
@@ -133,7 +199,8 @@ const finishedContests = ref([
     organizer: 'CTF联盟',
     difficulty: 'hard',
     categories: ['Web', '密码学', 'PWN', '逆向', '杂项', 'AI安全'],
-    winner: 'Team Dragon'
+    winner: 'Team Dragon',
+    contestType: 'mixed'
   }
 ])
 
@@ -165,6 +232,62 @@ onMounted(() => {
 .header p {
   color: var(--color-text-3);
   font-size: 16px;
+}
+
+.category-filters {
+  margin-bottom: 24px;
+  background: var(--color-bg-2);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.filter-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: var(--color-bg-1);
+  user-select: none;
+  color: var(--color-text-2);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.filter-option:hover {
+  border-color: var(--color-primary-6);
+  background: var(--color-primary-light-1);
+  transform: translateY(-1px);
+}
+
+.filter-option.active {
+  border-color: #1677ff !important;
+  background: #e6f4ff !important;
+  color: #0958d9 !important;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.15) !important;
+}
+
+.filter-option.active .option-icon,
+.filter-option.active .option-text {
+  color: #0958d9 !important;
+}
+
+.option-icon {
+  font-size: 16px;
+}
+
+.option-text {
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .tabs-wrapper {

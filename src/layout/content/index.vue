@@ -1,11 +1,13 @@
 <template>
-  <div class="page-wrapper">
-    <navbar />
-
-    <div class="content-wrapper">
-      <transition name="fade-transform" mode="out-in">
-        <router-view class="content" />
-      </transition>
+  <div class="main-layout">
+    <!-- 主内容区域 -->
+    <div class="main-content">
+      <navbar />
+      <div class="page-content">
+        <transition name="fade-transform" mode="out-in">
+          <router-view />
+        </transition>
+      </div>
     </div>
   </div>
 </template>
@@ -15,24 +17,23 @@ import Navbar from '@/layout/navbar'
 </script>
 
 <style scoped>
-.page-wrapper {
-  box-sizing: border-box;
-  padding-top: 50px;
-  width: 100%;
+.main-layout {
   height: 100vh;
-  background-color: var(--color-bg-1);
+  width: 100vw;
 }
 
-.content-wrapper {
-  width: 100%;
-  height: calc(100vh - 50px);
-}
-
-.content {
-  width: 100%;
+.main-content {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.page-content {
+  flex: 1;
   overflow-y: auto;
   background-color: var(--color-bg-1);
+  padding: 20px;
 }
 
 .fade-transform-enter-active,

@@ -1,3 +1,4 @@
+
 <template>
   <div class="login">
     <div class="login-form">
@@ -75,7 +76,7 @@ const handleSubmit = async () => {
   setLoading(false)
 
   if (result) {
-    await router.push({ name: 'table' })
+    await router.push({ name: 'practice' })
   }
 }
 </script>
