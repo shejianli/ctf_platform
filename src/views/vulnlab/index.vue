@@ -3,13 +3,13 @@
     <div class="header-row">
       <div class="header-left">
         <h1>🔥 漏洞靶场</h1>
-        <p>下载真实漏洞环境，提升实战渗透能力</p>
+        <p>下载真实漏洞环境或在线启动靶场，提升实战渗透能力</p>
       </div>
-      
+
       <div class="header-right">
-        <a-input-search 
-          v-model="filters.search" 
-          placeholder="搜索靶场..." 
+        <a-input-search
+          v-model="filters.search"
+          placeholder="搜索靶场..."
           allow-clear
           size="large"
           class="search-input"
@@ -29,57 +29,58 @@
       <div class="vulnlab-list">
         <div class="filters">
 
-          <!-- 分类筛选 -->
+                    <!-- 分类筛选 -->
           <div class="filter-section">
             <h4 class="filter-title">靶场分类</h4>
             <div class="filter-options">
-              <div 
+              <div
                 class="filter-option"
                 :class="{ active: filters.category === '' }"
-                @click="filters.category = ''"
+                @click="() => { filters.category = ''; resetPagination(); fetchVulnLabs(); }"
               >
                 <span class="option-icon">📋</span>
                 <span class="option-text">全部</span>
               </div>
-              <div 
+              <div
+                v-for="category in categories"
+                :key="category.ID"
                 class="filter-option"
-                :class="{ active: filters.category === 'web' }"
-                @click="filters.category = 'web'"
+                :class="{ active: filters.category === category.ID }"
+                @click="() => { filters.category = category.ID; resetPagination(); fetchVulnLabs(); }"
               >
-                <span class="option-icon">🌐</span>
-                <span class="option-text">Web漏洞</span>
+                <span class="option-icon">📚</span>
+                <span class="option-text">{{ category.name }}</span>
               </div>
-              <div 
+            </div>
+          </div>
+
+          <!-- 靶场类型筛选 -->
+          <div class="filter-section">
+            <h4 class="filter-title">靶场类型</h4>
+            <div class="filter-options">
+              <div
                 class="filter-option"
-                :class="{ active: filters.category === 'pwn' }"
-                @click="filters.category = 'pwn'"
+                :class="{ active: filters.type === '' }"
+                @click="() => { filters.type = ''; resetPagination(); fetchVulnLabs(); }"
               >
-                <span class="option-icon">⚡</span>
-                <span class="option-text">二进制漏洞</span>
+                <span class="option-icon">📋</span>
+                <span class="option-text">全部</span>
               </div>
-              <div 
+              <div
                 class="filter-option"
-                :class="{ active: filters.category === 'reverse' }"
-                @click="filters.category = 'reverse'"
+                :class="{ active: filters.type === 'online' }"
+                @click="() => { filters.type = 'online'; resetPagination(); fetchVulnLabs(); }"
               >
-                <span class="option-icon">🔄</span>
-                <span class="option-text">逆向工程</span>
+                <span class="option-icon">🚀</span>
+                <span class="option-text">在线启动</span>
               </div>
-              <div 
+              <div
                 class="filter-option"
-                :class="{ active: filters.category === 'crypto' }"
-                @click="filters.category = 'crypto'"
+                :class="{ active: filters.type === 'download' }"
+                @click="() => { filters.type = 'download'; resetPagination(); fetchVulnLabs(); }"
               >
-                <span class="option-icon">🔐</span>
-                <span class="option-text">密码学</span>
-              </div>
-              <div 
-                class="filter-option"
-                :class="{ active: filters.category === 'forensics' }"
-                @click="filters.category = 'forensics'"
-              >
-                <span class="option-icon">🔍</span>
-                <span class="option-text">数字取证</span>
+                <span class="option-icon">💾</span>
+                <span class="option-text">下载型</span>
               </div>
             </div>
           </div>
@@ -88,45 +89,31 @@
           <div class="filter-section">
             <h4 class="filter-title">难度等级</h4>
             <div class="filter-options">
-              <div 
+              <div
                 class="filter-option"
                 :class="{ active: filters.difficulty === '' }"
-                @click="filters.difficulty = ''"
+                @click="() => { filters.difficulty = ''; resetPagination(); fetchVulnLabs(); }"
               >
                 <span class="option-icon">📊</span>
                 <span class="option-text">全部</span>
               </div>
-              <div 
-                class="filter-option difficulty-easy"
-                :class="{ active: filters.difficulty === 'easy' }"
-                @click="filters.difficulty = 'easy'"
+              <div
+                v-for="difficulty in difficulties"
+                :key="difficulty.ID"
+                class="filter-option"
+                :class="{
+                  active: filters.difficulty === difficulty.ID,
+                  'difficulty-easy': difficulty.name === '简单',
+                  'difficulty-medium': difficulty.name === '中等',
+                  'difficulty-hard': difficulty.name === '困难',
+                  'difficulty-expert': difficulty.name === '魔鬼'
+                }"
+                @click="() => { filters.difficulty = difficulty.ID; resetPagination(); fetchVulnLabs(); }"
               >
-                <span class="option-icon">🟢</span>
-                <span class="option-text">简单</span>
-              </div>
-              <div 
-                class="filter-option difficulty-medium"
-                :class="{ active: filters.difficulty === 'medium' }"
-                @click="filters.difficulty = 'medium'"
-              >
-                <span class="option-icon">🟡</span>
-                <span class="option-text">中等</span>
-              </div>
-              <div 
-                class="filter-option difficulty-hard"
-                :class="{ active: filters.difficulty === 'hard' }"
-                @click="filters.difficulty = 'hard'"
-              >
-                <span class="option-icon">🔴</span>
-                <span class="option-text">困难</span>
-              </div>
-              <div 
-                class="filter-option difficulty-expert"
-                :class="{ active: filters.difficulty === 'expert' }"
-                @click="filters.difficulty = 'expert'"
-              >
-                <span class="option-icon">💀</span>
-                <span class="option-text">专家级</span>
+                <span class="option-icon">
+                  {{ difficulty.name === '简单' ? '🟢' : difficulty.name === '中等' ? '🟡' : difficulty.name === '困难' ? '🔴' : '💀' }}
+                </span>
+                <span class="option-text">{{ difficulty.name }}</span>
               </div>
             </div>
           </div>
@@ -134,98 +121,105 @@
 
         <!-- 靶场列表 -->
         <div class="vulnlab-grid">
-          <a-row :gutter="[16, 16]">
-            <a-col 
-              v-for="lab in filteredLabs" 
-              :key="lab.id" 
-              :xxl="8"
-              :xl="12"
-              :lg="12"
-              :md="24"
-              :sm="24"
-              :xs="24"
-            >
-              <a-card 
-                class="vulnlab-card" 
-                hoverable
-                @click="openLab(lab)"
+          <a-spin :loading="loading" tip="加载中...">
+            <a-row :gutter="[16, 16]">
+              <a-col
+                v-for="lab in filteredLabs"
+                :key="lab.id"
+                :xxl="8"
+                :xl="12"
+                :lg="12"
+                :md="24"
+                :sm="24"
+                :xs="24"
               >
-                <template #cover>
-                  <div class="lab-cover">
-                  </div>
-                </template>
-                
-                <div class="lab-content">
-                  <div class="lab-header">
-                    <h4 class="lab-title">{{ lab.name }}</h4>
-                    <div class="lab-meta">
-                      <a-tag size="small" :color="getStatusColor(lab.status)">
-                        {{ getStatusText(lab.status) }}
+                <a-card
+                  class="vulnlab-card"
+                  hoverable
+                  @click="openLab(lab)"
+                >
+                  <template #cover>
+                    <div class="lab-cover">
+                    </div>
+                  </template>
+
+                  <div class="lab-content">
+                    <div class="lab-header">
+                      <h4 class="lab-title">{{ lab.name }}</h4>
+                      <div class="lab-meta">
+                        <a-tag size="small" :color="getStatusColor(lab.status)">
+                          {{ getStatusText(lab.status) }}
+                        </a-tag>
+                        <a-tag size="small" v-if="lab.firstBlood" color="red">
+                          🏆 首杀
+                        </a-tag>
+                      </div>
+                    </div>
+
+                    <div class="lab-category-difficulty">
+                      <a-tag size="small" color="blue">{{ getCategoryName(lab.category) }}</a-tag>
+                      <a-tag size="small" color="orange">{{ getDifficultyName(lab.difficulty) }}</a-tag>
+                    </div>
+
+                    <p class="lab-description" :title="lab.description">{{ lab.description }}</p>
+
+                    <div class="lab-info">
+                      <div class="info-item" v-if="lab.type === 'download'">
+                        <icon-download />
+                        <span>{{ lab.downloads }}次下载</span>
+                      </div>
+                      <div class="info-item" v-if="lab.type === 'download'">
+                        <icon-clock-circle />
+                        <span>{{ lab.size }}MB</span>
+                      </div>
+                      <div class="info-item" v-if="lab.type === 'online'">
+                        <icon-user />
+                        <span>{{ lab.solved }}人解决</span>
+                      </div>
+                    </div>
+
+                    <div class="lab-tags">
+                      <a-tag
+                        v-for="tag in lab.tags"
+                        :key="tag"
+                        size="small"
+                        color="blue"
+                      >
+                        {{ tag }}
                       </a-tag>
-                      <a-tag size="small" v-if="lab.firstBlood" color="red">
-                        🏆 首杀
-                      </a-tag>
-                    </div>
-                  </div>
-                  
-                  <div class="lab-category-difficulty">
-                    <a-tag size="small" color="blue">{{ getCategoryName(lab.category) }}</a-tag>
-                    <a-tag size="small" color="orange">{{ getDifficultyName(lab.difficulty) }}</a-tag>
-                  </div>
-                  
-                  <p class="lab-description">{{ lab.description }}</p>
-                  
-                  <div class="lab-info">
-                    <div class="info-item">
-                      <icon-download />
-                      <span>{{ lab.downloads }}次下载</span>
-                    </div>
-                    <div class="info-item">
-                      <icon-user />
-                      <span>{{ lab.solved }}人解决</span>
-                    </div>
-                    <div class="info-item">
-                      <icon-clock-circle />
-                      <span>{{ lab.size }}</span>
                     </div>
                   </div>
 
-                  <div class="lab-tags">
-                    <a-tag 
-                      v-for="tag in lab.tags" 
-                      :key="tag"
-                      size="small"
-                      color="blue"
+                  <template #actions>
+                    <a-button
+                      v-if="lab.type === 'download'"
+                      type="primary"
+                      @click="downloadLab(lab)"
                     >
-                      {{ tag }}
-                    </a-tag>
-                  </div>
-                </div>
-
-                <template #actions>
-                  <a-button type="primary" @click="downloadLab(lab)">
-                    <icon-download />
-                    下载
-                  </a-button>
-                  <a-button @click="viewDetails(lab)">
-                    <icon-eye />
-                    详情
-                  </a-button>
-                </template>
-              </a-card>
-            </a-col>
-          </a-row>
+                      <icon-download />
+                      下载
+                    </a-button>
+                    <a-button @click="viewDetails(lab)">
+                      <icon-eye />
+                      详情
+                    </a-button>
+                  </template>
+                </a-card>
+              </a-col>
+            </a-row>
+          </a-spin>
         </div>
 
         <!-- 分页 -->
         <div class="pagination-wrapper">
           <a-pagination
             v-model:current="pagination.current"
-            v-model:page-size="pagination.pageSize"
+            :page-size="pagination.pageSize"
             :total="pagination.total"
-            show-size-changer
+            :show-size-changer="false"
             show-jumper
             show-total
+            @change="onPageChange"
           />
         </div>
       </div>
@@ -237,19 +231,19 @@
           <div class="instruction-list">
             <div class="instruction-item">
               <div class="step">1</div>
-              <div class="content">下载靶场虚拟机文件</div>
+              <div class="content">选择靶场类型（在线启动或下载）</div>
             </div>
             <div class="instruction-item">
               <div class="step">2</div>
-              <div class="content">使用 VirtualBox/VMware 导入</div>
+              <div class="content">在线靶场：点击启动，等待启动完成后连接</div>
             </div>
             <div class="instruction-item">
               <div class="step">3</div>
-              <div class="content">启动虚拟机开始渗透测试</div>
+              <div class="content">下载型靶场：下载虚拟机文件并导入</div>
             </div>
             <div class="instruction-item">
               <div class="step">4</div>
-              <div class="content">获取 root 权限或 flag</div>
+              <div class="content">开始渗透测试，获取 root 权限或 flag</div>
             </div>
           </div>
         </div>
@@ -257,8 +251,8 @@
         <div class="panel-section">
           <h3>🔥 热门靶场</h3>
           <div class="hot-labs">
-            <div 
-              v-for="lab in hotLabs" 
+            <div
+              v-for="lab in hotLabs"
               :key="lab.id"
               class="hot-lab-item"
               @click="openLab(lab)"
@@ -274,6 +268,49 @@
         </div>
 
         <div class="panel-section">
+          <h3>🚀 在线靶场管理</h3>
+          <div class="online-labs">
+            <div
+              v-for="lab in onlineLabs"
+              :key="lab.id"
+              class="online-lab-item"
+            >
+              <div class="online-lab-info">
+                <div class="online-lab-name">{{ lab.name }}</div>
+                <div class="online-lab-status">
+                  <span
+                    class="status-dot"
+                    :class="{ 'running': lab.isRunning, 'stopped': !lab.isRunning }"
+                  ></span>
+                  {{ lab.isRunning ? '运行中' : '已停止' }}
+                </div>
+              </div>
+              <div class="online-lab-actions">
+                <a-button
+                  v-if="!lab.isRunning"
+                  size="small"
+                  type="primary"
+                  :loading="lab.starting"
+                  @click="startOnlineLab(lab)"
+                >
+                  启动
+                </a-button>
+                <a-button
+                  v-else
+                  size="small"
+                  @click="showInstanceInfo(lab)"
+                >
+                  连接
+                </a-button>
+              </div>
+            </div>
+            <div v-if="onlineLabs.length === 0" class="no-online-labs">
+              暂无在线靶场
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
           <h3>📊 统计信息</h3>
           <div class="stats-grid">
             <div class="stat-item">
@@ -282,18 +319,22 @@
             </div>
             <div class="stat-item">
               <div class="stat-number">{{ totalDownloads }}</div>
-              <div class="stat-label">总下载量</div>
+              <div class="stat-label">下载型靶场下载量</div>
             </div>
             <div class="stat-item">
               <div class="stat-number">{{ totalSolved }}</div>
               <div class="stat-label">总解决数</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-number">{{ onlineLabs.length }}</div>
+              <div class="stat-label">在线靶场</div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 靶场详情弹窗 -->
+  <!-- 靶场详情弹窗 -->
     <a-modal
       v-model:visible="isLabModalVisible"
       :title="selectedLab ? selectedLab.name : '靶场详情'"
@@ -322,12 +363,21 @@
                 <span>{{ selectedLab.os }}</span>
               </div>
               <div class="detail-item">
-                <span class="label">文件大小：</span>
-                <span>{{ selectedLab.size }}</span>
+                <span class="label">{{ selectedLab.type === 'online' ? '靶场状态：' : '文件大小：' }}</span>
+                <span v-if="selectedLab.type === 'online'">
+                  <a-tag :color="selectedLab.isRunning ? 'green' : 'orange'">
+                    {{ selectedLab.isRunning ? '🟢 运行中' : '⚪ 未启动' }}
+                  </a-tag>
+                </span>
+                <span v-else>{{ selectedLab.size }}</span>
               </div>
-              <div class="detail-item">
+              <div class="detail-item" v-if="selectedLab.type === 'download'">
                 <span class="label">下载次数：</span>
                 <span>{{ selectedLab.downloads }}</span>
+              </div>
+              <div class="detail-item" v-if="selectedLab.type === 'online' && selectedLab.isRunning">
+                <span class="label">启动时间：</span>
+                <span>{{ selectedLab.instanceInfo?.startTime || '未知' }}</span>
               </div>
               <div class="detail-item">
                 <span class="label">解决人数：</span>
@@ -347,8 +397,8 @@
           <div class="lab-tags-section">
             <h4>标签</h4>
             <div class="tags-list">
-              <a-tag 
-                v-for="tag in selectedLab.tags" 
+              <a-tag
+                v-for="tag in selectedLab.tags"
                 :key="tag"
                 size="medium"
                 color="blue"
@@ -359,9 +409,33 @@
           </div>
 
           <div class="lab-actions">
-            <a-button type="primary" size="large" @click="downloadLab(selectedLab)">
+            <a-button
+              v-if="selectedLab.type === 'download'"
+              type="primary"
+              size="large"
+              @click="downloadLab(selectedLab)"
+            >
               <icon-download />
               下载靶场
+            </a-button>
+            <a-button
+              v-if="selectedLab.type === 'online' && !selectedLab.isRunning"
+              type="primary"
+              size="large"
+              :loading="selectedLab.starting"
+              @click="startOnlineLab(selectedLab)"
+            >
+              <icon-play-circle />
+              启动靶场
+            </a-button>
+            <a-button
+              v-if="selectedLab.type === 'online' && selectedLab.isRunning"
+              type="primary"
+              size="large"
+              @click="showInstanceInfo(selectedLab)"
+            >
+              <icon-play-circle />
+              连接靶场
             </a-button>
             <a-button size="large" @click="viewWriteup(selectedLab)">
               <icon-book />
@@ -371,138 +445,122 @@
         </div>
       </div>
     </a-modal>
+
+    <!-- 在线靶场实例信息弹窗 -->
+    <a-modal
+      v-model:visible="isInstanceModalVisible"
+      title="靶场连接信息"
+      :width="600"
+      :footer="false"
+      unmount-on-close
+    >
+      <div v-if="selectedInstance" class="instance-modal">
+        <div class="instance-status">
+          <a-tag size="large" color="green">🟢 运行中</a-tag>
+          <span class="start-time">启动时间: {{ selectedInstance.startTime }}</span>
+        </div>
+
+        <div class="connection-info">
+          <h4>🌐 Web访问</h4>
+          <div class="info-item">
+            <span class="label">访问地址:</span>
+            <a :href="selectedInstance.accessUrl" target="_blank" class="access-url">
+              {{ selectedInstance.accessUrl }}
+            </a>
+          </div>
+          <div class="info-item">
+            <span class="label">用户名:</span>
+            <span>{{ selectedInstance.webInfo.username }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">密码:</span>
+            <span>{{ selectedInstance.webInfo.password }}</span>
+          </div>
+        </div>
+
+        <div class="connection-info">
+          <h4>🔑 SSH连接</h4>
+          <div class="info-item">
+            <span class="label">主机地址:</span>
+            <span>{{ selectedInstance.sshInfo.host }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">端口:</span>
+            <span>{{ selectedInstance.sshInfo.port }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">用户名:</span>
+            <span>{{ selectedInstance.sshInfo.username }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">密码:</span>
+            <span>{{ selectedInstance.sshInfo.password }}</span>
+          </div>
+        </div>
+
+        <div class="instance-actions">
+          <a-button type="primary" @click="copyConnectionInfo">
+            <icon-copy />
+            复制连接信息
+          </a-button>
+          <a-button @click="stopInstance">
+            <icon-stop />
+            停止靶场
+          </a-button>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { 
-  IconSearch, 
-  IconDownload, 
-  IconUser, 
-  IconClockCircle, 
+import {
+  IconSearch,
+  IconDownload,
+  IconUser,
+  IconClockCircle,
   IconEye,
-  IconBook
+  IconBook,
+  IconPlayCircle,
+  IconCopy,
+  IconStop
 } from '@arco-design/web-vue/es/icon'
+import { Message } from '@arco-design/web-vue'
+import {
+  getVulnLabs,
+} from '@/api/vulnlab'
+import { getDifficultyLevels, getQuestionClasses } from '@/api/practice'
 
 // 筛选条件
 const filters = reactive({
-  category: '',
-  difficulty: '',
+  category: '', // 分类ID
+  difficulty: '', // 难度ID
+  type: '', // 环境类型
   search: ''
 })
 
 // 分页
 const pagination = reactive({
   current: 1,
-  pageSize: 12,
+  pageSize: 9,
   total: 0
 })
 
 // 靶场数据
-const vulnLabs = ref([
-  {
-    id: 1,
-    name: 'Kioptrix Level 1',
-    description: '经典的Linux渗透测试靶场，包含多种Web漏洞和提权技术',
-    category: 'web',
-    difficulty: 'easy',
-    os: 'Linux',
-    status: 'active',
-    downloads: 15420,
-    solved: 8920,
-    size: '1.2GB',
-    tags: ['SQL注入', '文件包含', '提权'],
-    firstBlood: false,
-    createdAt: '2023-01-15',
-    updatedAt: '2024-01-10'
-  },
-  {
-    id: 2,
-    name: 'VulnHub - Stapler',
-    description: '基于Ubuntu的靶场，包含多种Web应用漏洞和系统提权',
-    category: 'web',
-    difficulty: 'medium',
-    os: 'Linux',
-    status: 'active',
-    downloads: 12350,
-    solved: 6540,
-    size: '2.1GB',
-    tags: ['XSS', 'CSRF', '命令注入', '提权'],
-    firstBlood: false,
-    createdAt: '2023-03-20',
-    updatedAt: '2024-01-05'
-  },
-  {
-    id: 3,
-    name: 'Pwnable.kr - Toddler',
-    description: '二进制漏洞利用靶场，包含栈溢出、格式化字符串等',
-    category: 'pwn',
-    difficulty: 'easy',
-    os: 'Linux',
-    status: 'active',
-    downloads: 8760,
-    solved: 4320,
-    size: '500MB',
-    tags: ['栈溢出', '格式化字符串', 'ROP'],
-    firstBlood: false,
-    createdAt: '2023-02-10',
-    updatedAt: '2023-12-20'
-  },
-  {
-    id: 4,
-    name: 'Reverse Engineering - CrackMe',
-    description: '逆向工程练习靶场，包含多种反编译和动态分析技术',
-    category: 'reverse',
-    difficulty: 'medium',
-    os: 'Windows',
-    status: 'active',
-    downloads: 6540,
-    solved: 2980,
-    size: '800MB',
-    tags: ['反编译', '动态分析', '算法逆向'],
-    firstBlood: false,
-    createdAt: '2023-04-15',
-    updatedAt: '2023-11-30'
-  },
-  {
-    id: 5,
-    name: 'Crypto Challenge - RSA',
-    description: '密码学挑战靶场，包含RSA、AES等加密算法的破解',
-    category: 'crypto',
-    difficulty: 'hard',
-    os: 'Linux',
-    status: 'active',
-    downloads: 4320,
-    solved: 1560,
-    size: '600MB',
-    tags: ['RSA', 'AES', '哈希碰撞', '侧信道攻击'],
-    firstBlood: false,
-    createdAt: '2023-05-20',
-    updatedAt: '2023-10-15'
-  },
-  {
-    id: 6,
-    name: 'Digital Forensics - Memory Dump',
-    description: '数字取证靶场，从内存dump中提取关键信息和证据',
-    category: 'forensics',
-    difficulty: 'expert',
-    os: 'Windows',
-    status: 'active',
-    downloads: 2980,
-    solved: 890,
-    size: '3.5GB',
-    tags: ['内存分析', '进程分析', '网络分析', '文件恢复'],
-    firstBlood: false,
-    createdAt: '2023-06-10',
-    updatedAt: '2023-09-25'
-  }
-])
+const vulnLabs = ref([])
+const loading = ref(false)
+
+// 分类和难度数据
+const categories = ref([])
+const difficulties = ref([])
+const categoriesLoading = ref(false)
+const difficultiesLoading = ref(false)
 
 // 热门靶场
 const hotLabs = computed(() => {
   return vulnLabs.value
-    .sort((a, b) => b.downloads - a.downloads)
+    .sort((a, b) => (b.downloads || 0) - (a.downloads || 0))
     .slice(0, 5)
     .map((lab, index) => ({
       ...lab,
@@ -510,10 +568,121 @@ const hotLabs = computed(() => {
     }))
 })
 
+// 数据获取函数
+const fetchVulnLabs = async () => {
+  try {
+    loading.value = true
+    const params = {
+      page: pagination.current,
+      pageSize: pagination.pageSize
+    }
+
+    // 添加筛选参数
+    if (filters.search) {
+      params.name = filters.search
+    }
+    if (filters.category) {
+      params.categoryId = filters.category
+    }
+    if (filters.difficulty) {
+      params.difficultyLevelId = filters.difficulty
+    }
+    if (filters.type) {
+      params.environmentType = filters.type === 'online' ? 1 : 2
+    }
+
+    const response = await getVulnLabs(params)
+    if (response.data.code === 0) {
+      vulnLabs.value = response.data.data.list.map(lab => ({
+        ...lab,
+        // 映射API字段到前端字段
+        id: lab.ID,
+        name: lab.name,
+        description: lab.description || '',
+        category: lab.questionClass?.ID || lab.categoryId,
+        difficulty: lab.difficultyLevel?.ID || lab.difficultyLevelId,
+        type: lab.environmentType === 1 ? 'online' : 'download',
+        status: 'active',
+        downloads: lab.downloadCount || 0,
+        solved: lab.solved || 0,
+        size: lab.environmentType === 1 ? '在线' : `${lab.size || 0}MB`,
+        tags: lab.tag ? lab.tag.split(',').map(t => t.trim()) : [],
+        os: lab.os === '1' ? 'Linux' : 'Windows',
+        firstBlood: false,
+        isRunning: false,
+        starting: false,
+        instanceInfo: null,
+        createdAt: lab.CreatedAt,
+        updatedAt: lab.UpdatedAt
+      }))
+      pagination.total = response.data.data.total
+    } else {
+      Message.error(response.data.msg || '获取靶场列表失败')
+      vulnLabs.value = []
+      pagination.total = 0
+    }
+  } catch (error) {
+    console.error('获取靶场列表失败:', error)
+    Message.error('获取靶场列表失败')
+    vulnLabs.value = []
+    pagination.total = 0
+  } finally {
+    loading.value = false
+  }
+}
+
+// 获取分类数据
+const fetchCategories = async () => {
+  try {
+    categoriesLoading.value = true
+    const response = await getQuestionClasses({"page": 1,"pageSize": 1000,"category": 'vuln'})
+    if (response.data.code === 0) {
+      // 过滤出vuln类别的分类，因为这是漏洞靶场
+      categories.value = (response.data.data?.list || [])
+      console.log('获取到的分类数据:', categories.value)
+    }
+  } catch (error) {
+    console.error('获取分类失败:', error)
+  } finally {
+    categoriesLoading.value = false
+  }
+}
+
+// 获取难度数据
+const fetchDifficulties = async () => {
+  try {
+    difficultiesLoading.value = true
+    const response = await getDifficultyLevels({"page": 1,"pageSize": 1000,"category": 'vuln'})
+    console.log(response)
+    if (response.data.code === 0) {
+      // 过滤出vuln类别的难度等级
+      difficulties.value = (response.data.data?.list || [])
+      console.log('获取到的难度数据:', difficulties.value)
+    }
+  } catch (error) {
+    console.error('获取难度失败:', error)
+  } finally {
+    difficultiesLoading.value = false
+  }
+}
+
+
+
+
+
+
+
+
+
 // 统计信息
 const totalLabs = computed(() => vulnLabs.value.length)
-const totalDownloads = computed(() => vulnLabs.value.reduce((sum, lab) => sum + lab.downloads, 0))
+const totalDownloads = computed(() => vulnLabs.value.filter(lab => lab.type === 'download').reduce((sum, lab) => sum + lab.downloads, 0))
 const totalSolved = computed(() => vulnLabs.value.reduce((sum, lab) => sum + lab.solved, 0))
+
+// 在线靶场列表
+const onlineLabs = computed(() => {
+  return vulnLabs.value.filter(lab => lab.type === 'online')
+})
 
 // 过滤后的靶场
 const filteredLabs = computed(() => {
@@ -521,49 +690,54 @@ const filteredLabs = computed(() => {
 
   // 分类筛选
   if (filters.category) {
-    result = result.filter(lab => lab.category === filters.category)
+    result = result.filter(lab => lab.questionClass?.ID === filters.category || lab.category === filters.category)
   }
-  
+
   // 难度筛选
   if (filters.difficulty) {
-    result = result.filter(lab => lab.difficulty === filters.difficulty)
+    result = result.filter(lab => lab.difficultyLevel?.ID === filters.difficulty || lab.difficulty === filters.difficulty)
   }
-  
+
+  // 类型筛选
+  if (filters.type) {
+    result = result.filter(lab => lab.type === filters.type)
+  }
+
   // 搜索筛选
   if (filters.search) {
     const search = filters.search.toLowerCase()
-    result = result.filter(lab => 
+    result = result.filter(lab =>
       lab.name.toLowerCase().includes(search) ||
       lab.description.toLowerCase().includes(search) ||
-      lab.tags.some(tag => tag.toLowerCase().includes(search))
+      (lab.tags && lab.tags.some(tag => tag.toLowerCase().includes(search)))
     )
   }
 
-  pagination.total = result.length
   return result
 })
 
 // 获取分类名称
-const getCategoryName = (category) => {
-  const map = {
-    web: 'Web漏洞',
-    pwn: '二进制漏洞',
-    reverse: '逆向工程',
-    crypto: '密码学',
-    forensics: '数字取证'
+const getCategoryName = (categoryId) => {
+  if (!categoryId) return '未知分类'
+  // 先从靶场数据中查找，如果没有再从分类列表中查找
+  const lab = vulnLabs.value.find(l => l.questionClass?.ID === categoryId)
+  if (lab?.questionClass?.name) {
+    return lab.questionClass.name
   }
-  return map[category] || category
+  const category = categories.value.find(c => c.ID === categoryId)
+  return category ? category.name : `分类${categoryId}`
 }
 
 // 获取难度名称
-const getDifficultyName = (difficulty) => {
-  const map = {
-    easy: '简单',
-    medium: '中等',
-    hard: '困难',
-    expert: '专家级'
+const getDifficultyName = (difficultyId) => {
+  if (!difficultyId) return '未知难度'
+  // 先从靶场数据中查找，如果没有再从难度列表中查找
+  const lab = vulnLabs.value.find(l => l.difficultyLevel?.ID === difficultyId)
+  if (lab?.difficultyLevel?.name) {
+    return lab.difficultyLevel.name
   }
-  return map[difficulty] || difficulty
+  const difficulty = difficulties.value.find(d => d.ID === difficultyId)
+  return difficulty ? difficulty.name : `难度${difficultyId}`
 }
 
 // 获取状态文本
@@ -588,12 +762,26 @@ const getStatusColor = (status) => {
 
 // 搜索
 const onSearch = () => {
+  resetPagination()
+  fetchVulnLabs()
+}
+
+// 分页改变
+const onPageChange = (page) => {
+  pagination.current = page
+  fetchVulnLabs()
+}
+
+// 筛选条件改变时重置分页
+const resetPagination = () => {
   pagination.current = 1
 }
 
 // 弹窗相关
 const isLabModalVisible = ref(false)
 const selectedLab = ref(null)
+const isInstanceModalVisible = ref(false)
+const selectedInstance = ref(null)
 
 // 打开靶场详情
 const openLab = (lab) => {
@@ -602,10 +790,14 @@ const openLab = (lab) => {
 }
 
 // 下载靶场
-const downloadLab = (lab) => {
-  console.log('下载靶场:', lab.name)
-  // TODO: 实现下载逻辑
-  // 可以跳转到下载页面或直接下载
+const downloadLab = async (lab) => {
+  try {
+    console.log('下载靶场:', lab.name)
+    Message.success(`靶场 ${lab.name} 下载开始`)
+  } catch (error) {
+    console.error('下载靶场失败:', error)
+    Message.error('下载靶场失败')
+  }
 }
 
 // 查看详情
@@ -619,8 +811,101 @@ const viewWriteup = (lab) => {
   // TODO: 跳转到题解页面
 }
 
+// 在线启动靶场
+const startOnlineLab = async (lab) => {
+  if (lab.isRunning) {
+    // 如果靶场已经在运行，显示连接信息
+    showInstanceInfo(lab)
+    return
+  }
+
+  try {
+    lab.starting = true
+    console.log('启动在线靶场:', lab.name)
+
+    // 模拟启动成功
+    setTimeout(() => {
+      lab.isRunning = true
+      lab.starting = false
+      lab.instanceInfo = {
+        id: Date.now(),
+        startTime: new Date().toLocaleString(),
+        accessUrl: 'http://localhost:8080',
+        webInfo: { username: 'admin', password: 'admin' },
+        sshInfo: { host: 'localhost', port: 22, username: 'root', password: 'password' }
+      }
+      Message.success(`靶场 ${lab.name} 启动成功！`)
+    }, 2000)
+
+  } catch (error) {
+    console.error('启动靶场失败:', error)
+    lab.starting = false
+    Message.error(`启动靶场失败: ${error.message}`)
+  }
+}
+
+// 显示靶场实例信息
+const showInstanceInfo = (lab) => {
+  if (!lab.instanceInfo) return
+
+  selectedInstance.value = lab.instanceInfo
+  isInstanceModalVisible.value = true
+}
+
+// 复制连接信息
+const copyConnectionInfo = () => {
+  if (!selectedInstance.value) return
+
+  const info = `
+靶场连接信息:
+Web访问: ${selectedInstance.value.accessUrl}
+用户名: ${selectedInstance.value.webInfo.username}
+密码: ${selectedInstance.value.webInfo.password}
+
+SSH连接:
+主机: ${selectedInstance.value.sshInfo.host}:${selectedInstance.value.sshInfo.port}
+用户名: ${selectedInstance.value.sshInfo.username}
+密码: ${selectedInstance.value.sshInfo.password}
+  `.trim()
+
+  navigator.clipboard.writeText(info).then(() => {
+    Message.success('连接信息已复制到剪贴板')
+  }).catch(() => {
+    Message.error('复制失败，请手动复制')
+  })
+}
+
+// 停止靶场实例
+const stopInstance = async () => {
+  if (!selectedInstance.value) return
+
+  try {
+    console.log('停止靶场实例:', selectedInstance.value.id)
+
+    // 找到对应的靶场
+    const lab = vulnLabs.value.find(l => l.instanceInfo?.id === selectedInstance.value.id)
+    if (!lab) {
+      throw new Error('未找到对应的靶场')
+    }
+
+    // 模拟停止成功
+    lab.isRunning = false
+    lab.instanceInfo = null
+
+    Message.success('靶场已停止')
+    isInstanceModalVisible.value = false
+
+  } catch (error) {
+    console.error('停止靶场失败:', error)
+    Message.error(`停止靶场失败: ${error.message}`)
+  }
+}
+
 onMounted(() => {
-  pagination.total = vulnLabs.value.length
+  // 初始化数据
+  fetchCategories()
+  fetchDifficulties()
+  fetchVulnLabs()
 })
 </script>
 
@@ -777,6 +1062,8 @@ onMounted(() => {
   height: 100%;
   cursor: pointer;
   transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
 }
 
 .vulnlab-card:hover {
@@ -785,7 +1072,7 @@ onMounted(() => {
 }
 
 .lab-cover {
-  
+
   background: linear-gradient(135deg, var(--color-primary-light-1), var(--color-primary-6));
   position: relative;
   display: flex;
@@ -798,14 +1085,17 @@ onMounted(() => {
 
 
 .lab-content {
-  padding: 8px;
+  padding: 8px; /* 增加内边距，让内容更宽松 */
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .lab-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: 6px; /* 减少底部间距 */
 }
 
 .lab-title {
@@ -826,25 +1116,28 @@ onMounted(() => {
 .lab-category-difficulty {
   display: flex;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 4px; /* 减少底部间距 */
 }
 
 .lab-description {
   font-size: 13px;
   color: var(--color-text-3);
-  margin-bottom: 8px;
+  margin-bottom: 12px; /* 增加底部间距，让描述和下面信息更宽松 */
   line-height: 1.4;
+  height: 18px; /* 固定高度：13px * 1.4 = 18.2px */
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .lab-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px; /* 增加底部间距，让信息区域和标签更宽松 */
 }
 
 .info-item {
@@ -857,8 +1150,20 @@ onMounted(() => {
 
 .lab-tags {
   display: flex;
-  gap: 6px;
+  gap: 6px; /* 增加标签间距，让标签更宽松 */
   flex-wrap: wrap;
+  flex-grow: 1;
+  align-items: flex-end;
+  margin-bottom: 6px; /* 增加底部间距 */
+  max-height: 24px; /* 限制标签区域最大高度 */
+  overflow: hidden;
+}
+
+/* 确保操作按钮固定在底部 */
+.vulnlab-card :deep(.arco-card-actions) {
+  margin-top: auto;
+  padding-top: 8px; /* 减少顶部padding */
+  border-top: 1px solid var(--color-border);
 }
 
 /* 使用说明样式 */
@@ -951,10 +1256,73 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+/* 在线靶场管理样式 */
+.online-labs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.online-lab-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-1);
+}
+
+.online-lab-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.online-lab-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-1);
+  margin-bottom: 4px;
+}
+
+.online-lab-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-3);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-text-4);
+}
+
+.status-dot.running {
+  background: #52c41a;
+}
+
+.status-dot.stopped {
+  background: var(--color-text-4);
+}
+
+.online-lab-actions {
+  flex-shrink: 0;
+}
+
+.no-online-labs {
+  text-align: center;
+  color: var(--color-text-3);
+  font-size: 12px;
+  padding: 20px 0;
+}
+
 /* 统计信息样式 */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
 
@@ -986,6 +1354,64 @@ onMounted(() => {
   display: flex;
   align-items: center;
   margin-bottom: 16px;
+}
+
+/* 实例弹窗样式 */
+.instance-modal .instance-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.start-time {
+  color: var(--color-text-3);
+  font-size: 14px;
+}
+
+.connection-info {
+  margin-bottom: 20px;
+}
+
+.connection-info h4 {
+  margin: 0 0 12px 0;
+  color: var(--color-text-1);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.connection-info .info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-fill-3);
+}
+
+.connection-info .label {
+  color: var(--color-text-3);
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.access-url {
+  color: var(--color-primary-6);
+  text-decoration: none;
+}
+
+.access-url:hover {
+  text-decoration: underline;
+}
+
+.instance-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
 }
 
 .ml8 { margin-left: 8px; }
@@ -1041,12 +1467,12 @@ onMounted(() => {
   .main-content {
     flex-direction: column;
   }
-  
+
   .info-panel {
     width: 100%;
     position: static;
   }
-  
+
   .vulnlab-card {
     margin-bottom: 16px;
   }
@@ -1056,7 +1482,7 @@ onMounted(() => {
   .detail-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .lab-actions {
     flex-direction: column;
   }

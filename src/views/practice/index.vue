@@ -25,12 +25,14 @@
     </div>
 
     <div class="filters">
-
-        
-
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading-wrapper">
+        <a-spin size="large" />
+        <p>正在加载数据...</p>
+      </div>
 
       <!-- 筛选条件 -->
-      <div class="filter-sections">
+      <div v-else class="filter-sections">
         <div class="filter-section">
           <span class="filter-label">题目分类</span>
           <a-tabs 
@@ -40,11 +42,11 @@
             class="filter-tabs"
           >
             <a-tab-pane key="" title="全部"></a-tab-pane>
-            <a-tab-pane key="web" title="Web安全"></a-tab-pane>
-            <a-tab-pane key="crypto" title="密码学"></a-tab-pane>
-            <a-tab-pane key="pwn" title="二进制漏洞"></a-tab-pane>
-            <a-tab-pane key="misc" title="杂项"></a-tab-pane>
-            <a-tab-pane key="reverse" title="逆向工程"></a-tab-pane>
+            <a-tab-pane 
+              v-for="category in questionClasses" 
+              :key="category.name" 
+              :title="category.name"
+            ></a-tab-pane>
           </a-tabs>
         </div>
 
@@ -57,42 +59,17 @@
             class="filter-tabs"
           >
             <a-tab-pane key="" title="全部"></a-tab-pane>
-            <a-tab-pane key="easy" title="简单"></a-tab-pane>
-            <a-tab-pane key="medium" title="中等"></a-tab-pane>
-            <a-tab-pane key="hard" title="困难"></a-tab-pane>
+            <a-tab-pane 
+              v-for="level in difficultyLevels" 
+              :key="level.name" 
+              :title="level.name"
+            ></a-tab-pane>
           </a-tabs>
         </div>
 
-        <div class="filter-section">
-          <span class="filter-label">分数范围</span>
-          <a-tabs 
-            v-model:active-key="filters.scoreRange" 
-            size="small"
-            @change="onScoreChange"
-            class="filter-tabs"
-          >
-            <a-tab-pane key="" title="全部"></a-tab-pane>
-            <a-tab-pane key="0-100" title="0-100分"></a-tab-pane>
-            <a-tab-pane key="100-200" title="100-200分"></a-tab-pane>
-            <a-tab-pane key="200-300" title="200-300分"></a-tab-pane>
-            <a-tab-pane key="300+" title="300分以上"></a-tab-pane>
-          </a-tabs>
-        </div>
 
-        <div class="filter-section">
-          <span class="filter-label">完成状态</span>
-          <a-tabs 
-            v-model:active-key="filters.status" 
-            size="small"
-            @change="onStatusChange"
-            class="filter-tabs"
-          >
-            <a-tab-pane key="" title="全部"></a-tab-pane>
-            <a-tab-pane key="unsolved" title="未解决"></a-tab-pane>
-            <a-tab-pane key="attempted" title="已尝试"></a-tab-pane>
-            <a-tab-pane key="solved" title="已解决"></a-tab-pane>
-          </a-tabs>
-        </div>
+
+
       </div>
     </div>
 
@@ -102,8 +79,8 @@
         <div class="challenges-grid">
           <a-row :gutter="[12, 12]">
             <a-col 
-              v-for="challenge in filteredChallenges" 
-              :key="challenge.id" 
+              v-for="challenge in challenges" 
+              :key="challenge.ID" 
               :xxl="6"
               :xl="8"
               :lg="12"
@@ -124,25 +101,24 @@
                 
                 <div class="challenge-content">
                   <div class="challenge-header-row">
-                    <h4 class="challenge-title">{{ challenge.title }}</h4>
+                    <h4 class="challenge-title">{{ challenge.name }}</h4>
                     <a-tag 
-                      :color="getCategoryColor(challenge.category)" 
+                      :color="getCategoryColor(challenge.questionclassification)" 
                       size="small"
                       class="category-tag-header"
                     >
-                      {{ getCategoryName(challenge.category) }}
+                      {{ challenge.questionClass ? challenge.questionClass.name : getCategoryName(challenge.questionclassification) }}
                     </a-tag>
                   </div>
-                  <p class="challenge-description">{{ challenge.description }}</p>
                   
                   <div class="challenge-meta">
-                    <span class="challenge-points">
-                      <icon-trophy />
-                      {{ challenge.points }}分
-                    </span>
                     <span class="challenge-solved">
                       <icon-user />
-                      {{ challenge.solved }}人
+                      {{ challenge.challengecompleted }}人
+                    </span>
+                    <span class="challenge-difficulty">
+                      <icon-star />
+                      {{ challenge.difficultyLevel ? challenge.difficultyLevel.name : getDifficultyName(challenge.level) }}
                     </span>
                   </div>
                 </div>
@@ -159,6 +135,8 @@
             show-size-changer
             show-jumper
             show-total
+            @change="onPageChange"
+            @page-size-change="onPageSizeChange"
           />
         </div>
       </div>
@@ -212,7 +190,7 @@
     <!-- 题目弹窗 -->
     <a-modal
       v-model:visible="isChallengeModalVisible"
-      :title="selectedChallenge ? selectedChallenge.title : '题目'"
+      :title="selectedChallenge ? selectedChallenge.name : '题目'"
       :width="680"
       :footer="false"
       unmount-on-close
@@ -220,37 +198,80 @@
     >
       <div v-if="selectedChallenge" class="challenge-modal">
         <div class="modal-header">
-          <a-tag size="small">{{ getCategoryName(selectedChallenge.category) }}</a-tag>
-          <a-tag size="small" :color="getStatusColor(selectedChallenge.status)" class="ml8">{{ getStatusText(selectedChallenge.status) }}</a-tag>
-          <a-tag size="small" class="ml8">{{ getDifficultyName(selectedChallenge.difficulty) }}</a-tag>
-          <a-tag size="small" class="ml8"><icon-trophy /> {{ selectedChallenge.points }}分</a-tag>
+          <a-tag size="small">{{ selectedChallenge.questionClass ? selectedChallenge.questionClass.name : getCategoryName(selectedChallenge.questionclassification) }}</a-tag>
+          <a-tag size="small" class="ml8" :color="getDifficultyColor(selectedChallenge.level)">
+            {{ selectedChallenge.difficultyLevel ? selectedChallenge.difficultyLevel.name : getDifficultyName(selectedChallenge.level) }}
+          </a-tag>
+          <a-tag size="small" class="ml8" color="gold">
+            <icon-coin />
+            {{ selectedChallenge.coins_count }}金币
+          </a-tag>
         </div>
 
         <div class="modal-body">
-          <p class="desc">{{ selectedChallenge.description }}</p>
+          <!-- 题目描述 -->
+          <div class="challenge-info-section">
+            <h4 class="section-title">题目描述</h4>
+            <p class="challenge-description">{{ selectedChallenge.description }}</p>
+          </div>
+
+
 
           <!-- 动态/静态 Flag 区分 -->
-          <a-alert v-if="selectedChallenge.type === 'dynamic'" type="warning" show-icon class="mb12">
+          <a-alert v-if="selectedChallenge.flagType === 1" type="warning" show-icon class="mb12">
             本题为动态 Flag，倒计时结束后实例将失效。
           </a-alert>
           <a-alert v-else type="info" show-icon class="mb12">
             本题为静态 Flag，请下载附件或阅读描述完成解题。
           </a-alert>
 
-          <!-- 动态 Flag 计时器 -->
-          <div v-if="selectedChallenge.type === 'dynamic'" class="timer">
-            <span>剩余时间：</span>
-            <span class="time">{{ formatTime(remainingSec) }}</span>
-            <a-button size="mini" type="text" class="ml8" @click="resetTimer">重置</a-button>
+          <!-- 动态 Flag 靶机控制 -->
+          <div v-if="selectedChallenge.flagType === 1" class="dynamic-flag-control">
+            <div v-if="!isTargetStarted" class="start-target">
+              <a-button type="primary" @click="startTarget" :loading="startingTarget">
+                启动靶机
+              </a-button>
+              <p class="tip-text">点击启动靶机后开始计时，靶机将在30分钟后自动关闭</p>
+            </div>
+            
+            <div v-else class="target-running">
+              <div class="timer-info">
+                <span>剩余时间：</span>
+                <span class="time">{{ formatTime(remainingSec) }}</span>
+              </div>
+              
+              <div class="progress-wrapper">
+                <a-progress 
+                  :percent="progressPercent" 
+                  :show-text="false"
+                  :stroke-color="progressColor"
+                  size="small"
+                />
+                <span class="progress-text">{{ Math.ceil(remainingSec / 60) }}分钟</span>
+              </div>
+              
+              <div class="target-actions">
+                <a-button 
+                  size="small" 
+                  type="text" 
+                  @click="extendTarget" 
+                  :disabled="hasExtended"
+                  v-if="!hasExtended"
+                >
+                  续期 (剩余1次)
+                </a-button>
+                <a-button size="small" type="text" @click="stopTarget">停止靶机</a-button>
+              </div>
+            </div>
           </div>
 
-          <!-- 静态 Flag 附件列表 -->
-          <div v-else-if="selectedChallenge.attachments && selectedChallenge.attachments.length" class="attachments">
+          <!-- 附件列表 -->
+          <div v-if="selectedChallenge.attachment" class="attachments">
             <h5>附件下载</h5>
             <div class="attachment-list">
-              <div class="attachment-item" v-for="(file, idx) in selectedChallenge.attachments" :key="idx">
-                <span class="file-name">{{ file.name }}</span>
-                <a-button type="primary" size="small" @click="downloadAttachment(file)">下载</a-button>
+              <div class="attachment-item">
+                <span class="file-name">{{ selectedChallenge.attachment }}</span>
+                <a-button type="primary" size="small" @click="downloadAttachment(selectedChallenge.attachment)">下载</a-button>
               </div>
             </div>
           </div>
@@ -269,35 +290,48 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { IconSearch, IconTrophy, IconUser, IconRefresh, IconClockCircle } from '@arco-design/web-vue/es/icon'
+import { getDifficultyLevels, getQuestionClasses, getQuestions } from '@/api/practice'
 
 // 筛选条件
 const filters = reactive({
   category: '',
   difficulty: '',
-  scoreRange: '',
-  status: '',
   search: ''
 })
 
+// 从后端获取的数据
+const difficultyLevels = ref([])
+const questionClasses = ref([])
+const questions = ref([])
+const loading = ref(false)
+
 // 筛选条件变化处理函数
-const onCategoryChange = (key) => {
+const onCategoryChange = async (key) => {
   filters.category = key
   resetPagination()
+  await fetchQuestions()
 }
 
-const onDifficultyChange = (key) => {
+const onDifficultyChange = async (key) => {
   filters.difficulty = key
   resetPagination()
+  await fetchQuestions()
 }
 
-const onScoreChange = (key) => {
-  filters.scoreRange = key
-  resetPagination()
+
+
+
+
+// 分页处理
+const onPageChange = async (page) => {
+  pagination.current = page
+  await fetchQuestions()
 }
 
-const onStatusChange = (key) => {
-  filters.status = key
-  resetPagination()
+const onPageSizeChange = async (pageSize) => {
+  pagination.pageSize = pageSize
+  pagination.current = 1
+  await fetchQuestions()
 }
 
 // 分页
@@ -307,309 +341,58 @@ const pagination = reactive({
   total: 0
 })
 
-// 模拟题目数据
-const challenges = ref([
-  {
-    id: 1,
-    title: 'SQL注入入门',
-    description: '学习基础的SQL注入攻击技术',
-    category: 'web',
-    difficulty: 'easy',
-    points: 100,
-    solved: 156,
-    status: 'solved',
-    type: 'static',
-    attachments: [
-      { name: '题目说明.pdf', url: '/api/attachments/sql_intro.pdf' }
-    ]
-  },
-  {
-    id: 2,
-    title: 'RSA加密破解',
-    description: '破解使用弱密钥的RSA加密',
-    category: 'crypto',
-    difficulty: 'medium',
-    points: 200,
-    solved: 89,
-    status: 'attempted',
-    type: 'static',
-    attachments: [
-      { name: '公钥.pem', url: '/api/attachments/rsa_pub.pem' },
-      { name: '密文.txt', url: '/api/attachments/rsa_cipher.txt' }
-    ]
-  },
-  {
-    id: 3,
-    title: '缓冲区溢出',
-    description: '利用栈溢出漏洞获取shell',
-    category: 'pwn',
-    difficulty: 'hard',
-    points: 300,
-    solved: 34,
-    status: 'unsolved',
-    type: 'dynamic',
-    durationSec: 1800
-  },
-  {
-    id: 4,
-    title: '隐写术挑战',
-    description: '从图片中提取隐藏信息',
-    category: 'misc',
-    difficulty: 'easy',
-    points: 150,
-    solved: 102,
-    status: 'solved',
-    type: 'static',
-    attachments: [
-      { name: 'image.jpg', url: '/api/attachments/stego_image.jpg' }
-    ]
-  },
-  {
-    id: 5,
-    title: '安卓逆向',
-    description: '分析Android APK文件',
-    category: 'reverse',
-    difficulty: 'medium',
-    points: 250,
-    solved: 67,
-    status: 'unsolved',
-    type: 'static',
-    attachments: [
-      { name: 'demo.apk', url: '/api/attachments/demo.apk' }
-    ]
-  },
-  {
-    id: 6,
-    title: 'XSS挑战',
-    description: '绕过XSS过滤器',
-    category: 'web',
-    difficulty: 'medium',
-    points: 180,
-    solved: 91,
-    status: 'attempted',
-    type: 'dynamic',
-    durationSec: 1200
-  },
-  {
-    id: 7,
-    title: '文件包含漏洞',
-    description: '利用文件包含漏洞读取敏感文件',
-    category: 'web',
-    difficulty: 'medium',
-    points: 220,
-    solved: 75,
-    status: 'unsolved',
-    type: 'static',
-    attachments: []
-  },
-  {
-    id: 8,
-    title: 'AES密码分析',
-    description: '分析AES加密的实现缺陷',
-    category: 'crypto',
-    difficulty: 'hard',
-    points: 350,
-    solved: 28,
-    status: 'unsolved',
-    type: 'static',
-    attachments: [
-      { name: 'trace.bin', url: '/api/attachments/trace.bin' }
-    ]
-  },
-  {
-    id: 9,
-    title: '栈溢出利用',
-    description: '通过栈溢出获取系统权限',
-    category: 'pwn',
-    difficulty: 'medium',
-    points: 280,
-    solved: 45,
-    status: 'unsolved',
-    type: 'dynamic',
-    durationSec: 1800
-  },
-  {
-    id: 10,
-    title: '音频隐写',
-    description: '从音频文件中提取隐藏的flag',
-    category: 'misc',
-    difficulty: 'easy',
-    points: 120,
-    solved: 89,
-    status: 'solved',
-    type: 'static',
-    attachments: [
-      { name: 'audio.wav', url: '/api/attachments/audio.wav' }
-    ]
-  },
-  {
-    id: 11,
-    title: 'JWT伪造',
-    description: '伪造JWT令牌绕过身份验证',
-    category: 'web',
-    difficulty: 'medium',
-    points: 230,
-    solved: 67,
-    status: 'attempted',
-    type: 'dynamic',
-    durationSec: 900
-  },
-  {
-    id: 12,
-    title: 'Windows逆向',
-    description: '逆向分析Windows可执行文件',
-    category: 'reverse',
-    difficulty: 'hard',
-    points: 320,
-    solved: 23,
-    status: 'unsolved',
-    type: 'static',
-    attachments: []
-  },
-  {
-    id: 13,
-    title: '哈希碰撞',
-    description: '找到MD5哈希碰撞',
-    category: 'crypto',
-    difficulty: 'easy',
-    points: 80,
-    solved: 145,
-    status: 'solved',
-    type: 'static',
-    attachments: []
-  },
-  {
-    id: 14,
-    title: 'SSRF漏洞',
-    description: '利用服务端请求伪造漏洞',
-    category: 'web',
-    difficulty: 'medium',
-    points: 190,
-    solved: 58,
-    status: 'attempted',
-    type: 'dynamic',
-    durationSec: 1200
-  },
-  {
-    id: 15,
-    title: '内存取证',
-    description: '从内存dump中提取关键信息',
-    category: 'misc',
-    difficulty: 'hard',
-    points: 380,
-    solved: 19,
-    status: 'unsolved',
-    type: 'static',
-    attachments: [
-      { name: 'memory.dump', url: '/api/attachments/memory.dump' }
-    ]
-  }
-])
+// 题目数据（从后端获取）
+const challenges = ref([])
 
-// 过滤后的题目
-const filteredChallenges = computed(() => {
-  let result = challenges.value
 
-  // 分类筛选
-  if (filters.category) {
-    result = result.filter(c => c.category === filters.category)
-  }
-  
-  // 难度筛选
-  if (filters.difficulty) {
-    result = result.filter(c => c.difficulty === filters.difficulty)
-  }
-  
-  // 分数范围筛选
-  if (filters.scoreRange) {
-    result = result.filter(c => {
-      const points = c.points
-      switch (filters.scoreRange) {
-        case '0-100':
-          return points >= 0 && points <= 100
-        case '100-200':
-          return points > 100 && points <= 200
-        case '200-300':
-          return points > 200 && points <= 300
-        case '300+':
-          return points > 300
-        default:
-          return true
-      }
-    })
-  }
-  
-  // 状态筛选
-  if (filters.status) {
-    result = result.filter(c => c.status === filters.status)
-  }
-  
-  // 搜索筛选
-  if (filters.search) {
-    const search = filters.search.toLowerCase()
-    result = result.filter(c => 
-      c.title.toLowerCase().includes(search) ||
-      c.description.toLowerCase().includes(search)
-    )
-  }
-
-  pagination.total = result.length
-  return result
-})
 
 // 获取分类名称
-const getCategoryName = (category) => {
-  const map = {
-    web: 'Web',
-    crypto: '密码学',
-    pwn: 'PWN',
-    misc: '杂项',
-    reverse: '逆向'
+const getCategoryName = (categoryId) => {
+  // 从后端数据中查找分类名称
+  const foundCategory = questionClasses.value.find(cat => cat.ID === categoryId)
+  if (foundCategory) {
+    return foundCategory.name
   }
-  return map[category] || category
+  return '未知分类'
 }
 
 // 获取难度名称
-const getDifficultyName = (difficulty) => {
-  const map = {
-    easy: '简单',
-    medium: '中等',
-    hard: '困难'
+const getDifficultyName = (levelId) => {
+  // 从后端数据中查找难度名称
+  const foundDifficulty = difficultyLevels.value.find(level => level.ID === levelId)
+  if (foundDifficulty) {
+    return foundDifficulty.name
   }
-  return map[difficulty] || difficulty
+  return '未知难度'
 }
 
-// 获取状态文本
-const getStatusText = (status) => {
-  const map = {
-    solved: '已解决',
-    attempted: '已尝试',
-    unsolved: '未解决'
-  }
-  return map[status] || '未知'
-}
+
 
 // 获取分类颜色
-const getCategoryColor = (category) => {
-  const map = {
-    web: 'red',
-    crypto: 'blue',
-    pwn: 'green',
-    misc: 'orange',
-    reverse: 'purple'
+const getCategoryColor = (categoryId) => {
+  // 根据分类ID返回不同的颜色
+  const colorMap = {
+    1: 'red',    // Web安全
+    2: 'purple', // 逆向工程
+    3: 'blue',   // 密码学
+    4: 'green',  // Pwn
+    5: 'orange'  // 其他分类
   }
-  return map[category] || 'gray'
+  return colorMap[categoryId] || 'gray'
 }
 
-// 获取状态颜色
-const getStatusColor = (status) => {
-  const map = {
-    solved: 'green',
-    attempted: 'orange',
-    unsolved: 'gray'
+// 获取难度颜色
+const getDifficultyColor = (levelId) => {
+  // 根据难度ID返回不同的颜色
+  const colorMap = {
+    1: 'green',   // 入门/简单
+    2: 'orange',  // 中等
+    3: 'red'      // 困难
   }
-  return map[status] || 'gray'
+  return colorMap[levelId] || 'gray'
 }
+
+
 
 // 重置分页
 const resetPagination = () => {
@@ -617,8 +400,9 @@ const resetPagination = () => {
 }
 
 // 触发搜索（按钮或回车）
-const onSearch = () => {
+const onSearch = async () => {
   resetPagination()
+  await fetchQuestions()
 }
 
 // 弹窗相关
@@ -626,6 +410,9 @@ const isChallengeModalVisible = ref(false)
 const selectedChallenge = ref(null)
 const flagInput = ref('')
 const remainingSec = ref(0)
+const isTargetStarted = ref(false)
+const startingTarget = ref(false)
+const hasExtended = ref(false)
 let countdownTimer = null
 
 // 解题动态数据
@@ -634,7 +421,7 @@ const solvingDynamics = ref([
     id: 1,
     userName: 'CTF大师',
     userAvatar: 'https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/3ee5f13fb09879ecb5185e440cef6eb9.png~tplv-uwbnlip3yd-webp.webp',
-    challengeName: 'SQL注入入门',
+    challengeName: 'SQL注入基础',
     type: 'first-blood',
     timestamp: Date.now() - 1000 * 60 * 5 // 5分钟前
   },
@@ -642,7 +429,7 @@ const solvingDynamics = ref([
     id: 2,
     userName: '安全小白',
     userAvatar: '',
-    challengeName: 'RSA加密破解',
+    challengeName: 'XSS跨站脚本',
     type: 'solved',
     timestamp: Date.now() - 1000 * 60 * 15 // 15分钟前
   },
@@ -650,7 +437,7 @@ const solvingDynamics = ref([
     id: 3,
     userName: '逆向工程师',
     userAvatar: '',
-    challengeName: '安卓逆向',
+    challengeName: '缓冲区溢出',
     type: 'attempted',
     timestamp: Date.now() - 1000 * 60 * 30 // 30分钟前
   },
@@ -658,7 +445,7 @@ const solvingDynamics = ref([
     id: 4,
     userName: 'Web安全专家',
     userAvatar: '',
-    challengeName: 'XSS挑战',
+    challengeName: 'XSS跨站脚本',
     type: 'solved',
     timestamp: Date.now() - 1000 * 60 * 45 // 45分钟前
   },
@@ -666,7 +453,7 @@ const solvingDynamics = ref([
     id: 5,
     userName: '密码学爱好者',
     userAvatar: '',
-    challengeName: 'AES密码分析',
+    challengeName: '缓冲区溢出',
     type: 'attempted',
     timestamp: Date.now() - 1000 * 60 * 60 // 1小时前
   },
@@ -687,7 +474,7 @@ const refreshDynamics = () => {
     id: Date.now(),
     userName: '新用户' + Math.floor(Math.random() * 1000),
     userAvatar: '',
-    challengeName: challenges.value[Math.floor(Math.random() * challenges.value.length)].title,
+    challengeName: challenges.value.length > 0 ? challenges.value[Math.floor(Math.random() * challenges.value.length)].name : '题目',
     type: ['solved', 'attempted', 'first-blood'][Math.floor(Math.random() * 3)],
     timestamp: Date.now()
   }
@@ -728,9 +515,13 @@ const openChallenge = (challenge) => {
   isChallengeModalVisible.value = true
 
   stopTimer()
-  if (challenge.type === 'dynamic') {
-    remainingSec.value = challenge.durationSec || 1800
-    startTimer()
+  isTargetStarted.value = false
+  startingTarget.value = false
+  hasExtended.value = false
+  
+  if (challenge.flagType === 1) {
+    // 动态Flag，重置状态
+    remainingSec.value = 0
   } else {
     remainingSec.value = 0
   }
@@ -759,9 +550,65 @@ const stopTimer = () => {
   }
 }
 
+// 进度条相关计算属性
+const progressPercent = computed(() => {
+  if (remainingSec.value <= 0) return 0
+  return Math.round(((1800 - remainingSec.value) / 1800) * 100)
+})
+
+const progressColor = computed(() => {
+  const percent = progressPercent.value
+  if (percent < 50) return '#52c41a'
+  if (percent < 80) return '#fa8c16'
+  return '#f5222d'
+})
+
+// 靶机控制函数
+const startTarget = async () => {
+  startingTarget.value = true
+  try {
+    // TODO: 调用后端API启动靶机
+    await new Promise(resolve => setTimeout(resolve, 1000)) // 模拟API调用
+    
+    isTargetStarted.value = true
+    remainingSec.value = 1800 // 30分钟
+    startTimer()
+  } catch (error) {
+    console.error('启动靶机失败:', error)
+  } finally {
+    startingTarget.value = false
+  }
+}
+
+const extendTarget = async () => {
+  try {
+    // TODO: 调用后端API续期靶机
+    await new Promise(resolve => setTimeout(resolve, 500)) // 模拟API调用
+    
+    remainingSec.value = 1800 // 续期30分钟
+    hasExtended.value = true
+    startTimer()
+  } catch (error) {
+    console.error('续期靶机失败:', error)
+  }
+}
+
+const stopTarget = async () => {
+  try {
+    // TODO: 调用后端API停止靶机
+    await new Promise(resolve => setTimeout(resolve, 500)) // 模拟API调用
+    
+    isTargetStarted.value = false
+    stopTimer()
+    remainingSec.value = 0
+  } catch (error) {
+    console.error('停止靶机失败:', error)
+  }
+}
+
 const resetTimer = () => {
-  if (selectedChallenge.value && selectedChallenge.value.type === 'dynamic') {
-    remainingSec.value = selectedChallenge.value.durationSec || 1800
+  if (selectedChallenge.value && selectedChallenge.value.flagType === 1) {
+    remainingSec.value = 1800
     startTimer()
   }
 }
@@ -774,8 +621,10 @@ const formatTime = (total) => {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
 }
 
-const downloadAttachment = (file) => {
-  window.open(file.url, '_blank')
+const downloadAttachment = (attachment) => {
+  // 构建下载链接
+  const downloadUrl = `http://192.168.1.18:8888/uploads/${attachment}`
+  window.open(downloadUrl, '_blank')
 }
 
 const submitFlag = () => {
@@ -783,8 +632,93 @@ const submitFlag = () => {
   // TODO: 接口提交校验
 }
 
-onMounted(() => {
-  pagination.total = challenges.value.length
+// 获取难度等级数据
+const fetchDifficultyLevels = async () => {
+  try {
+    loading.value = true
+    const response = await getDifficultyLevels({
+      page: 1,
+      pageSize: 100
+    })
+    if (response.data && response.data.code === 0) {
+      difficultyLevels.value = response.data.data.list || []
+    }
+  } catch (error) {
+    console.error('获取难度等级失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 获取题目分类数据
+const fetchQuestionClasses = async () => {
+  try {
+    loading.value = true
+    const response = await getQuestionClasses({
+      page: 1,
+      pageSize: 100
+    })
+    if (response.data && response.data.code === 0) {
+      questionClasses.value = response.data.data.list || []
+    }
+  } catch (error) {
+    console.error('获取题目分类失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// 获取题目数据
+const fetchQuestions = async () => {
+  try {
+    loading.value = true
+    
+    // 构建请求参数
+    const params = {
+      page: pagination.current,
+      pageSize: pagination.pageSize
+    }
+    
+    // 添加搜索参数
+    if (filters.search) {
+      params.name = filters.search
+    }
+    
+    // 添加分类筛选
+    if (filters.category) {
+      const selectedCategory = questionClasses.value.find(cat => cat.name === filters.category)
+      if (selectedCategory) {
+        params.questionclassification = selectedCategory.ID
+      }
+    }
+    
+    // 添加难度筛选
+    if (filters.difficulty) {
+      const selectedDifficulty = difficultyLevels.value.find(level => level.name === filters.difficulty)
+      if (selectedDifficulty) {
+        params.level = selectedDifficulty.ID
+      }
+    }
+    
+    const response = await getQuestions(params)
+    if (response.data && response.data.code === 0) {
+      challenges.value = response.data.data.list || []
+      pagination.total = response.data.data.total || 0
+    }
+  } catch (error) {
+    console.error('获取题目数据失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(async () => {
+  // 获取后端数据
+  await Promise.all([
+    fetchDifficultyLevels(),
+    fetchQuestionClasses(),
+    fetchQuestions()
+  ])
 })
 </script>
 
@@ -1098,6 +1032,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.challenge-difficulty {
+  flex-shrink: 0;
 }
 
 
@@ -1109,7 +1049,8 @@ onMounted(() => {
 }
 
 .challenge-points,
-.challenge-solved {
+.challenge-solved,
+.challenge-difficulty {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1173,5 +1114,111 @@ onMounted(() => {
   display: flex;
   align-items: center;
   margin-top: 16px;
+}
+
+.loading-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.loading-wrapper p {
+  margin-top: 16px;
+  color: var(--color-text-3);
+  font-size: 14px;
+}
+
+.challenge-info-section {
+  margin-bottom: 20px;
+  margin-top: 20px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  margin: 0 0 8px 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.challenge-description {
+  color: var(--color-text-2);
+  line-height: 1.5;
+  margin: 0;
+  font-size: 13px;
+}
+
+.challenge-tip {
+  color: var(--color-text-2);
+  line-height: 1.5;
+  margin: 0;
+  padding: 10px;
+  background: var(--color-fill-2);
+  border-radius: 6px;
+  border-left: 3px solid var(--color-primary-6);
+  font-size: 13px;
+}
+
+.dynamic-flag-control {
+  margin: 16px 0;
+}
+
+.start-target {
+  text-align: center;
+  padding: 20px;
+  background: var(--color-fill-1);
+  border-radius: 8px;
+}
+
+.tip-text {
+  margin: 12px 0 0 0;
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+.target-running {
+  padding: 16px;
+  background: var(--color-fill-1);
+  border-radius: 8px;
+}
+
+.timer-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.timer-info .time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-weight: 600;
+  color: #0958d9;
+}
+
+.progress-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.progress-wrapper :deep(.arco-progress) {
+  flex: 1;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: var(--color-text-3);
+  min-width: 50px;
+}
+
+.target-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
 }
 </style>

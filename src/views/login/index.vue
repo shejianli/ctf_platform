@@ -60,6 +60,7 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { reactive } from 'vue'
 import useLoading from '@/hooks/loading'
+import { setToken } from '@/utils/auth'
 
 const userInfo = reactive({
   username: 'admin',
@@ -72,12 +73,33 @@ const router = useRouter()
 
 const handleSubmit = async () => {
   setLoading(true)
-  const result = await store.dispatch('user/login', userInfo)
-  setLoading(false)
-
-  if (result) {
-    await router.push({ name: 'practice' })
+  
+  // 模拟登录延迟
+  await new Promise(resolve => setTimeout(resolve, 500))
+  
+  // 直接写入登录状态
+  const loginData = {
+    token: 'mock-token-' + Date.now(),
+    userInfo: {
+      id: 1,
+      username: userInfo.username,
+      avatar: '',
+      email: userInfo.username + '@example.com',
+      role: 'admin'
+    }
   }
+  
+  // 存储到Cookies（与auth工具函数保持一致）
+  setToken(loginData.token)
+  
+  // 更新store状态
+  store.commit('user/SET_TOKEN', loginData.token)
+  store.commit('user/SET_USER_INFO', loginData.userInfo)
+  
+  setLoading(false)
+  
+  // 跳转到练习页面
+  await router.push({ name: 'practice' })
 }
 </script>
 

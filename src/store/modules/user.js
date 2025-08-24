@@ -42,6 +42,11 @@ const mutations = {
   SET_TOKEN: (state, token) => {
     state.token = token
   },
+  SET_USER_INFO: (state, userInfo) => {
+    state.name = userInfo.username
+    state.avatar = userInfo.avatar
+    state.role = userInfo.role
+  },
 }
 
 export default {
