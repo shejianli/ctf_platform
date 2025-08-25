@@ -19,6 +19,10 @@
           <div class="stat-value">{{ userProgress.completedSubChallenges }}</div>
           <div class="stat-label">已完成小题</div>
         </div>
+        <div class="stat-item">
+          <div class="stat-value">{{ userProgress.totalSubChallenges }}</div>
+          <div class="stat-label">总小题数</div>
+        </div>
       </div>
     </div>
 
@@ -46,49 +50,62 @@
       <a-row :gutter="24">
         <a-col :span="24">
           <!-- 大题网格 -->
-          <div class="challenges-grid">
-            <div 
-              v-for="challenge in filteredChallenges" 
-              :key="challenge.id"
-              class="challenge-card"
-              :class="{ 
-                'completed': challenge.completed, 
-                'locked': challenge.locked,
-                'current': challenge.id === userProgress.currentChallenge
-              }"
-              @click="selectChallenge(challenge)"
-            >
-
-              <div class="challenge-content">
-                <h3 class="challenge-title">{{ challenge.title }}</h3>
-                <p class="challenge-description">{{ challenge.description }}</p>
-                <div class="challenge-meta">
-                  <div class="challenge-difficulty">
-                    <a-tag :color="getDifficultyColor(challenge.difficulty)" size="small">
-                      {{ challenge.difficulty }}
+          <a-spin :loading="loading" tip="加载中...">
+            <div class="challenges-grid">
+              <div
+                v-for="challenge in filteredChallenges"
+                :key="challenge.id"
+                class="challenge-card"
+                :class="{
+                  'completed': challenge.completed,
+                  'locked': challenge.locked,
+                  'current': challenge.id === userProgress.currentChallenge
+                }"
+                @click="selectChallenge(challenge)"
+              >
+                <div class="challenge-content">
+                  <h3 class="challenge-title">{{ challenge.title }}</h3>
+                  <p class="challenge-description">{{ challenge.description }}</p>
+                  <div class="challenge-meta">
+                    <div class="challenge-difficulty">
+                      <a-tag :color="getDifficultyColor(challenge.difficulty)" size="small">
+                        {{ challenge.difficulty }}
+                      </a-tag>
+                    </div>
+                    <div class="challenge-points">
+                      <icon-trophy />
+                      {{ challenge.totalPoints }}分
+                    </div>
+                  </div>
+                  <div class="challenge-progress">
+                    <div class="progress-info">
+                      <span>{{ challenge.completedSubCount }}/{{ challenge.totalSubCount }} 小题</span>
+                    </div>
+                    <div class="progress-bar">
+                      <div class="progress-fill" :style="{ width: challenge.totalSubCount > 0 ? (challenge.completedSubCount / challenge.totalSubCount) * 100 + '%' : '0%' }"></div>
+                    </div>
+                  </div>
+                  <div class="challenge-tags">
+                    <a-tag v-for="tag in challenge.tags" :key="tag" size="small" color="blue">
+                      {{ tag }}
                     </a-tag>
                   </div>
-                  <div class="challenge-points">
-                    <icon-trophy />
-                    {{ challenge.totalPoints }}分
-                  </div>
-                </div>
-                <div class="challenge-progress">
-                  <div class="progress-info">
-                    <span>{{ challenge.completedSubCount }}/{{ challenge.totalSubCount }} 小题</span>
-                  </div>
-                  <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: (challenge.completedSubCount / challenge.totalSubCount) * 100 + '%' }"></div>
-                  </div>
-                </div>
-                <div class="challenge-tags">
-                  <a-tag v-for="tag in challenge.tags" :key="tag" size="small" color="blue">
-                    {{ tag }}
-                  </a-tag>
                 </div>
               </div>
-
             </div>
+          </a-spin>
+
+          <!-- 分页 -->
+          <div class="pagination-wrapper">
+            <a-pagination
+              v-model:current="pagination.current"
+              :page-size="pagination.pageSize"
+              :total="pagination.total"
+              :show-size-changer="false"
+              show-jumper
+              show-total
+              @change="onPageChange"
+            />
           </div>
         </a-col>
 
@@ -103,9 +120,10 @@
       :width="700"
       :footer="false"
     >
-      <div v-if="selectedChallenge" class="sub-challenges-selector">
-        <!-- 大题信息 -->
-        <div class="challenge-overview">
+      <a-spin :loading="subChallengesLoading" tip="加载子题目中...">
+        <div v-if="selectedChallenge" class="sub-challenges-selector">
+          <!-- 大题信息 -->
+          <div class="challenge-overview">
           <div class="overview-header">
             <div class="overview-icon">{{ selectedChallenge.icon }}</div>
             <div class="overview-info">
@@ -122,18 +140,18 @@
                 <span class="stat-label">总小题</span>
               </div>
               <div class="stat-nav">
-                <a-button 
-                  type="text" 
-                  size="small" 
+                <a-button
+                  type="text"
+                  size="small"
                   @click="prevSubChallenge"
                   :disabled="currentSubIndex === 0"
                   class="nav-btn"
                 >
                   上一题
                 </a-button>
-                <a-button 
-                  type="text" 
-                  size="small" 
+                <a-button
+                  type="text"
+                  size="small"
                   @click="nextSubChallenge"
                   :disabled="currentSubIndex === selectedChallenge.subChallenges.length - 1"
                   class="nav-btn"
@@ -146,16 +164,16 @@
         </div>
 
         <!-- 小题轮播选择器 -->
-        <div class="sub-challenges-carousel">
+        <div class="sub-challenges-carousel" v-if="selectedChallenge.subChallenges.length > 0">
 
           <div class="carousel-content">
             <div class="sub-challenge-card">
               <div class="sub-challenge-header">
                 <div class="sub-challenge-right">
                   <div class="action-button">
-                    <a-button 
+                    <a-button
                       v-if="!currentSubChallenge.completed && !currentSubChallenge.locked"
-                      type="primary" 
+                      type="primary"
                       size="small"
                       @click="startSubChallenge(currentSubChallenge)"
                       class="btn-challenge"
@@ -163,9 +181,9 @@
                       <icon-right />
                       开始挑战
                     </a-button>
-                    <a-button 
+                    <a-button
                       v-else-if="currentSubChallenge.completed"
-                      type="danger" 
+                      type="danger"
                       size="small"
                       disabled
                       class="btn-completed"
@@ -173,9 +191,9 @@
                       <icon-check />
                       已完成
                     </a-button>
-                    <a-button 
+                    <a-button
                       v-else
-                      type="warning" 
+                      type="warning"
                       size="small"
                       disabled
                       class="btn-locked"
@@ -186,11 +204,11 @@
                   </div>
                 </div>
               </div>
-              
+
               <div class="sub-challenge-content">
                 <h4 class="sub-challenge-title">{{ currentSubChallenge.title }}</h4>
                 <p class="sub-challenge-description">{{ currentSubChallenge.description }}</p>
-                
+
                 <div class="sub-challenge-meta">
                   <div class="sub-challenge-difficulty">
                     <a-tag :color="getDifficultyColor(currentSubChallenge.difficulty)" size="small">
@@ -210,7 +228,17 @@
 
 
         </div>
-      </div>
+
+        <!-- 空状态提示 -->
+        <div v-else-if="!subChallengesLoading" class="empty-state">
+          <div class="empty-content">
+            <icon-trophy style="font-size: 48px; color: #ccc; margin-bottom: 16px;" />
+            <h3>暂无子题目</h3>
+            <p>该题目暂时没有可用的子题目，请稍后再试。</p>
+          </div>
+        </div>
+        </div>
+      </a-spin>
     </a-modal>
 
     <!-- 挑战进行中弹窗 -->
@@ -233,7 +261,7 @@
             <span class="time">{{ formatTimeRemaining(timeRemaining) }}</span>
           </div>
         </div>
-        
+
         <div class="challenge-content">
           <div class="challenge-description">
             <h4>📋 任务说明</h4>
@@ -248,7 +276,7 @@
               </ul>
             </div>
           </div>
-          
+
           <div class="challenge-submission">
             <h4>🚩 提交答案</h4>
             <div class="submission-form">
@@ -258,8 +286,8 @@
                 size="large"
                 @keyup.enter="submitFlag"
               />
-              <a-button 
-                type="primary" 
+              <a-button
+                type="primary"
                 size="large"
                 :loading="isSubmitting"
                 @click="submitFlag"
@@ -269,7 +297,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="challenge-footer">
           <a-button @click="giveUpChallenge" type="outline">
             放弃挑战
@@ -281,87 +309,121 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { 
-  IconCheck, 
-  IconLock, 
-  IconRight, 
-  IconTrophy, 
+import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
+import {
+  IconCheck,
+  IconLock,
+  IconRight,
+  IconTrophy,
   IconClockCircle,
   IconLeft
 } from '@arco-design/web-vue/es/icon'
+import { Message } from '@arco-design/web-vue'
+import { getChallengePublic, getParentIdChallengePublic } from '@/api/challenge'
 
 // 用户进度
 const userProgress = ref({
-  completedChallenges: 2,
-  totalScore: 1250,
-  completedSubChallenges: 5,
+  completedChallenges: 0,
+  totalScore: 0,
+  completedSubChallenges: 0,
+  totalSubChallenges: 0,
   currentChallenge: 1
 })
 
 // 大题数据
-const challenges = ref([
-  {
-    id: 1,
-    title: 'Web安全基础',
-    description: '学习基础的Web安全知识，包括HTTP协议、HTML基础等',
-    difficulty: '简单',
-    totalPoints: 100,
-    tags: ['Web', '基础', 'HTTP', 'HTML'],
-    category: 'web',
-    completed: true,
-    locked: false,
-    completedAt: '2024-01-10 14:30:00',
-    requiredChallenge: null,
-    completedSubCount: 1,
-    totalSubCount: 3,
-    subChallenges: [
-      { id: 1, title: 'HTTP协议基础', description: '学习HTTP协议的基本概念和请求方法', difficulty: '简单', points: 50, hint: 'HTTP协议是基于TCP/IP的应用层协议。', completed: true, locked: false },
-      { id: 2, title: 'XSS跨站脚本', description: '学习XSS攻击的原理和防御方法', difficulty: '中等', points: 50, hint: 'XSS攻击是通过在网页中注入恶意脚本实现的。', completed: false, locked: false },
-      { id: 3, title: 'SQL注入基础', description: '学习SQL注入的基本原理和利用方法', difficulty: '简单', points: 50, hint: 'SQL注入是通过在SQL查询中插入恶意代码实现的。', completed: false, locked: true }
-    ]
-  },
-  {
-    id: 2,
-    title: '密码学进阶',
-    description: '学习密码学的基本概念和算法',
-    difficulty: '中等',
-    totalPoints: 200,
-    tags: ['密码学', '加密', '解密', 'Hash', '基础'],
-    category: 'crypto',
-    completed: false,
-    locked: false,
-    completedAt: null,
-    requiredChallenge: null,
-    completedSubCount: 0,
-    totalSubCount: 3,
-    subChallenges: [
-      { id: 1, title: 'MD5加密', description: '学习MD5加密算法的原理和应用', difficulty: '简单', points: 50, hint: 'MD5是一种不可逆的哈希算法。', completed: false, locked: false },
-      { id: 2, title: 'AES加密', description: '学习AES加密算法的原理和应用', difficulty: '中等', points: 50, hint: 'AES是一种对称加密算法。', completed: false, locked: false },
-      { id: 3, title: 'RSA加密', description: '学习RSA加密算法的原理和应用', difficulty: '困难', points: 100, hint: 'RSA是一种非对称加密算法。', completed: false, locked: true }
-    ]
-  },
-  {
-    id: 3,
-    title: '逆向工程',
-    description: '学习基本的逆向分析技术',
-    difficulty: '中等',
-    totalPoints: 150,
-    tags: ['逆向', '反编译', '汇编', '分析'],
-    category: 'reverse',
-    completed: false,
-    locked: true,
-    completedAt: null,
-    requiredChallenge: 1,
-    completedSubCount: 0,
-    totalSubCount: 3,
-    subChallenges: [
-      { id: 1, title: 'IDA Pro基础', description: '学习IDA Pro的基本使用方法', difficulty: '简单', points: 50, hint: 'IDA Pro是一款强大的反编译工具。', completed: false, locked: false },
-      { id: 2, title: '汇编语言基础', description: '学习汇编语言的基本语法和指令', difficulty: '中等', points: 50, hint: '汇编语言是低级语言，直接操作硬件。', completed: false, locked: false },
-      { id: 3, title: 'PE文件结构', description: '学习PE文件的结构和加载原理', difficulty: '困难', points: 50, hint: 'PE文件是Windows可执行文件的格式。', completed: false, locked: false }
-    ]
+const challenges = ref([])
+const loading = ref(false)
+const subChallengesLoading = ref(false)
+
+// 分页
+const pagination = reactive({
+  current: 1,
+  pageSize: 10,
+  total: 0
+})
+
+// 获取题目数据
+const fetchChallenges = async () => {
+  try {
+    loading.value = true
+    const params = {
+      page: pagination.current,
+      pageSize: pagination.pageSize
+    }
+
+    const response = await getChallengePublic(params)
+    if (response.data.code === 0) {
+      const challengeList = response.data.data.list || []
+
+      challenges.value = challengeList.map(challenge => ({
+        id: challenge.ID,
+        title: challenge.name,
+        description: challenge.description,
+        difficulty: challenge.difficultyLevel?.name || '未知',
+        totalPoints: challenge.scope,
+        tags: challenge.tag ? challenge.tag.split(',').map(t => t.trim()) : [],
+        category: getCategoryFromTags(challenge.tag),
+        completed: false, // 暂时设为false，后续可以从用户进度API获取
+        locked: challenge.parent_id !== 0, // 如果不是顶级题目则锁定
+        completedAt: null,
+        requiredChallenge: null,
+        completedSubCount: 0, // 暂时设为0，后续可以从用户进度API获取
+        totalSubCount: challenge.subChallengeCount || 0, // 使用后端返回的子题目数量
+        subChallenges: [] // 暂时为空数组，后续可以从子题目API获取
+      }))
+
+      pagination.total = response.data.data.total
+
+      // 更新用户进度统计
+      updateUserProgress(response.data.data.totalSubChallenges || 0)
+    } else {
+      Message.error(response.data.msg || '获取题目列表失败')
+    }
+  } catch (error) {
+    console.error('获取题目列表失败:', error)
+    Message.error('获取题目列表失败')
+  } finally {
+    loading.value = false
   }
-])
+}
+
+// 根据标签判断分类
+const getCategoryFromTags = (tagString) => {
+  if (!tagString) return 'misc'
+
+  const tags = tagString.toLowerCase()
+  if (tags.includes('web') || tags.includes('http') || tags.includes('html')) return 'web'
+  if (tags.includes('sql') || tags.includes('注入')) return 'sql'
+  if (tags.includes('xss') || tags.includes('跨站')) return 'xss'
+  if (tags.includes('密码') || tags.includes('加密') || tags.includes('hash')) return 'crypto'
+  if (tags.includes('逆向') || tags.includes('反编译')) return 'reverse'
+  if (tags.includes('pwn') || tags.includes('溢出')) return 'pwn'
+  if (tags.includes('隐写')) return 'stego'
+  if (tags.includes('取证') || tags.includes('分析')) return 'forensics'
+
+  return 'misc'
+}
+
+// 更新用户进度统计
+const updateUserProgress = (totalSubChallenges = 0) => {
+  const completedCount = challenges.value.filter(c => c.completed).length
+  const totalScore = challenges.value.reduce((sum, c) => sum + c.totalPoints, 0)
+  const completedSubCount = challenges.value.reduce((sum, c) => sum + c.completedSubCount, 0)
+  
+  userProgress.value = {
+    completedChallenges: completedCount,
+    totalScore: totalScore,
+    completedSubChallenges: completedSubCount,
+    totalSubChallenges: totalSubChallenges,
+    currentChallenge: 1
+  }
+}
+
+// 分页改变
+const onPageChange = (page) => {
+  pagination.current = page
+  fetchChallenges()
+}
 
 // 分类筛选相关
 const categories = ref([
@@ -385,13 +447,13 @@ const filteredChallenges = computed(() => {
   if (selectedCategories.value.includes('all')) {
     return challenges.value
   }
-  
+
   return challenges.value.filter(challenge => {
     // 检查大题的标签是否包含选中的分类
     return selectedCategories.value.some(category => {
       const challengeTags = challenge.tags.map(tag => tag.toLowerCase())
       const categoryKeywords = getCategoryKeywords(category)
-      return categoryKeywords.some(keyword => 
+      return categoryKeywords.some(keyword =>
         challengeTags.some(tag => tag.includes(keyword))
       )
     })
@@ -417,7 +479,7 @@ const getCategoryKeywords = (category) => {
 // 切换分类选择
 const toggleCategory = (category) => {
   const index = selectedCategories.value.indexOf(category)
-  
+
   if (category === 'all') {
     // 如果点击"全部"
     if (index > -1) {
@@ -513,11 +575,11 @@ const formatTime = (timeStr) => {
   const date = new Date(timeStr)
   const now = new Date()
   const diff = now - date
-  
+
   const minutes = Math.floor(diff / (1000 * 60))
   const hours = Math.floor(diff / (1000 * 60 * 60))
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-  
+
   if (minutes < 60) {
     return `${minutes}分钟前`
   } else if (hours < 24) {
@@ -536,9 +598,56 @@ const formatTimeRemaining = (seconds) => {
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
 }
 
-const selectChallenge = (challenge) => {
+const selectChallenge = async (challenge) => {
   selectedChallenge.value = challenge
-  isSubChallengesModalVisible.value = true
+  subChallengesLoading.value = true
+
+  try {
+    // 获取子题目列表
+    const response = await getParentIdChallengePublic({
+      parentId: challenge.id,
+      page: 1,
+      pageSize: 100 // 获取所有子题目
+    })
+
+    if (response.data.code === 0) {
+      const subChallengeList = response.data.data.list || []
+
+      // 映射子题目数据
+      selectedChallenge.value.subChallenges = subChallengeList.map(subChallenge => ({
+        id: subChallenge.ID,
+        title: subChallenge.name,
+        description: subChallenge.description,
+        difficulty: subChallenge.difficultyLevel?.name || '未知',
+        points: subChallenge.scope,
+        hint: subChallenge.hint || '',
+        completed: false, // 暂时设为false，后续可以从用户进度API获取
+        locked: false, // 暂时设为false，后续可以根据前置条件判断
+        completedAt: null
+      }))
+
+      // 更新大题的子题目数量
+      selectedChallenge.value.totalSubCount = selectedChallenge.value.subChallenges.length
+      selectedChallenge.value.completedSubCount = selectedChallenge.value.subChallenges.filter(s => s.completed).length
+
+    } else {
+      Message.error(response.data.msg || '获取子题目失败')
+      // 如果获取失败，设置为空数组
+      selectedChallenge.value.subChallenges = []
+      selectedChallenge.value.totalSubCount = 0
+      selectedChallenge.value.completedSubCount = 0
+    }
+  } catch (error) {
+    console.error('获取子题目失败:', error)
+    Message.error('获取子题目失败')
+    // 如果获取失败，设置为空数组
+    selectedChallenge.value.subChallenges = []
+    selectedChallenge.value.totalSubCount = 0
+    selectedChallenge.value.completedSubCount = 0
+  } finally {
+    subChallengesLoading.value = false
+    isSubChallengesModalVisible.value = true
+  }
 }
 
 const viewSubChallenges = (challenge) => {
@@ -565,7 +674,7 @@ const goToSubChallenge = (index) => {
 
 const startSubChallenge = (subChallenge) => {
   currentChallengeSub.value = subChallenge
-  
+
   // 设置时间限制（根据难度调整）
   const timeMap = {
     '简单': 1800,    // 30分钟
@@ -574,10 +683,10 @@ const startSubChallenge = (subChallenge) => {
     '专家': 7200     // 2小时
   }
   timeRemaining.value = timeMap[subChallenge.difficulty] || 3600
-  
+
   // 启动计时器
   startChallengeTimer()
-  
+
   isChallengeModalVisible.value = true
   // isSubChallengesModalVisible.value = false // 关闭小题选择弹窗
 }
@@ -598,7 +707,7 @@ const timeUp = () => {
   isSubmitting.value = false
   isChallengeModalVisible.value = false
   currentChallengeSub.value = null
-  
+
   // 显示时间到提示
   alert('时间到！挑战失败，请重新尝试。')
 }
@@ -608,42 +717,42 @@ const submitFlag = async () => {
     alert('请输入flag！')
     return
   }
-  
+
   isSubmitting.value = true
-  
+
   try {
     // 模拟提交flag的API调用
     await new Promise(resolve => setTimeout(resolve, 1000))
-    
+
     // 检查flag是否正确（这里简化处理）
     const correctFlag = `flag{sub${currentChallengeSub.value.id}_${currentChallengeSub.value.id * 100 + 50}}`
-    
+
     if (flagInput.value.trim() === correctFlag) {
       // 挑战成功
       clearInterval(challengeTimer)
       isChallengeModalVisible.value = false
-      
+
       // 更新小题状态
       const subChallenge = selectedChallenge.value.subChallenges.find(s => s.id === currentChallengeSub.value.id)
       if (subChallenge) {
         subChallenge.completed = true
         subChallenge.completedAt = new Date().toLocaleString()
-        
+
         // 更新大题完成状态
         const completedCount = selectedChallenge.value.subChallenges.filter(s => s.completed).length
         selectedChallenge.value.completedSubCount = completedCount
-        
+
         if (completedCount === selectedChallenge.value.subChallenges.length) {
           selectedChallenge.value.completed = true
           selectedChallenge.value.completedAt = new Date().toLocaleString()
           userProgress.value.completedChallenges++
         }
       }
-      
+
       // 更新用户进度
       userProgress.value.completedSubChallenges++
       userProgress.value.totalScore += currentChallengeSub.value.points
-      
+
       alert(`恭喜！挑战成功！获得 ${currentChallengeSub.value.points} 积分`)
     } else {
       alert('Flag错误，请重新尝试！')
@@ -675,6 +784,7 @@ const giveUpChallenge = () => {
 // 生命周期
 onMounted(() => {
   // 初始化数据
+  fetchChallenges()
 })
 
 onUnmounted(() => {
@@ -744,9 +854,35 @@ onUnmounted(() => {
 
 .challenges-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: 20px;
   margin-bottom: 24px;
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-content h3 {
+  margin: 0 0 8px 0;
+  color: var(--color-text-2);
+  font-size: 18px;
+}
+
+.empty-content p {
+  margin: 0;
+  color: var(--color-text-3);
+  font-size: 14px;
 }
 
 .challenge-card {
@@ -1281,7 +1417,13 @@ onUnmounted(() => {
 /* 响应式设计 */
 @media (max-width: 1200px) {
   .challenges-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .challenges-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -1289,55 +1431,55 @@ onUnmounted(() => {
   .challenge-container {
     padding: 16px;
   }
-  
+
   .challenge-header {
     padding: 20px;
   }
-  
+
   .header-stats {
     flex-direction: column;
     gap: 20px;
   }
-  
+
   .challenges-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .challenge-content {
     flex-direction: column;
   }
-  
 
-  
+
+
   .carousel-content {
     height: 200px;
   }
-  
 
-  
+
+
   .challenge-card {
     padding: 16px;
     gap: 10px;
   }
-  
 
-  
+
+
   .overview-stats {
     flex-direction: column;
     gap: 12px;
     align-items: flex-start;
   }
-  
+
   .stat-nav {
     margin-left: 0;
     margin-top: 8px;
   }
-  
+
   .overview-info h3,
   .overview-info p {
     max-width: 200px;
   }
-  
+
   .challenge-title,
   .challenge-description,
   .sub-challenge-title,
