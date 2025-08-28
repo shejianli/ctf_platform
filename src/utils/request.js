@@ -2,7 +2,7 @@ import axios from 'axios'
 import { Message } from '@arco-design/web-vue'
 
 const service = axios.create({
-  baseURL: 'http://192.168.1.3:8888'
+  baseURL: 'http://192.168.34.161:8888'
 })
 
 service.interceptors.response.use(

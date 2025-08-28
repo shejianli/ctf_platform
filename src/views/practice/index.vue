@@ -5,11 +5,11 @@
         <h1>练习场</h1>
         <p>提升你的CTF技能，挑战各种类型的题目</p>
       </div>
-      
+
       <div class="header-right">
-        <a-input-search 
-          v-model="filters.search" 
-          placeholder="搜索题目..." 
+        <a-input-search
+          v-model="filters.search"
+          placeholder="搜索题目..."
           allow-clear
           size="large"
           class="search-input"
@@ -35,16 +35,16 @@
       <div v-else class="filter-sections">
         <div class="filter-section">
           <span class="filter-label">题目分类</span>
-          <a-tabs 
-            v-model:active-key="filters.category" 
+          <a-tabs
+            v-model:active-key="filters.category"
             size="small"
             @change="onCategoryChange"
             class="filter-tabs"
           >
             <a-tab-pane key="" title="全部"></a-tab-pane>
-            <a-tab-pane 
-              v-for="category in questionClasses" 
-              :key="category.name" 
+            <a-tab-pane
+              v-for="category in questionClasses"
+              :key="category.name"
               :title="category.name"
             ></a-tab-pane>
           </a-tabs>
@@ -52,16 +52,16 @@
 
         <div class="filter-section">
           <span class="filter-label">难度等级</span>
-          <a-tabs 
-            v-model:active-key="filters.difficulty" 
+          <a-tabs
+            v-model:active-key="filters.difficulty"
             size="small"
             @change="onDifficultyChange"
             class="filter-tabs"
           >
             <a-tab-pane key="" title="全部"></a-tab-pane>
-            <a-tab-pane 
-              v-for="level in difficultyLevels" 
-              :key="level.name" 
+            <a-tab-pane
+              v-for="level in difficultyLevels"
+              :key="level.name"
               :title="level.name"
             ></a-tab-pane>
           </a-tabs>
@@ -73,14 +73,14 @@
       </div>
     </div>
 
- 
+
     <div class="practice-main">
       <div class="challenges-section">
         <div class="challenges-grid">
           <a-row :gutter="[12, 12]">
-            <a-col 
-              v-for="challenge in challenges" 
-              :key="challenge.ID" 
+            <a-col
+              v-for="challenge in challenges"
+              :key="challenge.ID"
               :xxl="6"
               :xl="8"
               :lg="12"
@@ -88,8 +88,8 @@
               :sm="24"
               :xs="24"
             >
-              <a-card 
-                class="challenge-card" 
+              <a-card
+                class="challenge-card"
                 hoverable
                 :size="'small'"
                 @click="openChallenge(challenge)"
@@ -98,19 +98,19 @@
                   <div class="challenge-cover">
                   </div>
                 </template>
-                
+
                 <div class="challenge-content">
                   <div class="challenge-header-row">
                     <h4 class="challenge-title">{{ challenge.name }}</h4>
-                    <a-tag 
-                      :color="getCategoryColor(challenge.questionclassification)" 
+                    <a-tag
+                      :color="getCategoryColor(challenge.questionclassification)"
                       size="small"
                       class="category-tag-header"
                     >
                       {{ challenge.questionClass ? challenge.questionClass.name : getCategoryName(challenge.questionclassification) }}
                     </a-tag>
                   </div>
-                  
+
                   <div class="challenge-meta">
                     <span class="challenge-solved">
                       <icon-user />
@@ -149,11 +149,11 @@
             <icon-refresh />
           </a-button>
         </div>
-        
+
         <div class="dynamics-list">
-          <div 
-            v-for="dynamic in solvingDynamics" 
-            :key="dynamic.id" 
+          <div
+            v-for="dynamic in solvingDynamics"
+            :key="dynamic.id"
             class="dynamic-item"
             :class="dynamic.type"
           >
@@ -212,7 +212,7 @@
           <!-- 题目描述 -->
           <div class="challenge-info-section">
             <h4 class="section-title">题目描述</h4>
-            <p class="challenge-description">{{ selectedChallenge.description }}</p>
+            <pre class="challenge-description">{{ selectedChallenge.description }}</pre>
           </div>
 
 
@@ -233,28 +233,28 @@
               </a-button>
               <p class="tip-text">点击启动靶机后开始计时，靶机将在30分钟后自动关闭</p>
             </div>
-            
+
             <div v-else class="target-running">
               <div class="timer-info">
                 <span>剩余时间：</span>
                 <span class="time">{{ formatTime(remainingSec) }}</span>
               </div>
-              
+
               <div class="progress-wrapper">
-                <a-progress 
-                  :percent="progressPercent" 
+                <a-progress
+                  :percent="progressPercent"
                   :show-text="false"
                   :stroke-color="progressColor"
                   size="small"
                 />
                 <span class="progress-text">{{ Math.ceil(remainingSec / 60) }}分钟</span>
               </div>
-              
+
               <div class="target-actions">
-                <a-button 
-                  size="small" 
-                  type="text" 
-                  @click="extendTarget" 
+                <a-button
+                  size="small"
+                  type="text"
+                  @click="extendTarget"
                   :disabled="hasExtended"
                   v-if="!hasExtended"
                 >
@@ -479,7 +479,7 @@ const refreshDynamics = () => {
     timestamp: Date.now()
   }
   solvingDynamics.value.unshift(newDynamic)
-  
+
   // 保持最多显示10条动态
   if (solvingDynamics.value.length > 10) {
     solvingDynamics.value = solvingDynamics.value.slice(0, 10)
@@ -496,7 +496,7 @@ const viewAllDynamics = () => {
 const formatTimeAgo = (timestamp) => {
   const now = Date.now()
   const diff = now - timestamp
-  
+
   if (diff < 1000 * 60) {
     return '刚刚'
   } else if (diff < 1000 * 60 * 60) {
@@ -518,7 +518,7 @@ const openChallenge = (challenge) => {
   isTargetStarted.value = false
   startingTarget.value = false
   hasExtended.value = false
-  
+
   if (challenge.flagType === 1) {
     // 动态Flag，重置状态
     remainingSec.value = 0
@@ -569,7 +569,7 @@ const startTarget = async () => {
   try {
     // TODO: 调用后端API启动靶机
     await new Promise(resolve => setTimeout(resolve, 1000)) // 模拟API调用
-    
+
     isTargetStarted.value = true
     remainingSec.value = 1800 // 30分钟
     startTimer()
@@ -584,7 +584,7 @@ const extendTarget = async () => {
   try {
     // TODO: 调用后端API续期靶机
     await new Promise(resolve => setTimeout(resolve, 500)) // 模拟API调用
-    
+
     remainingSec.value = 1800 // 续期30分钟
     hasExtended.value = true
     startTimer()
@@ -597,7 +597,7 @@ const stopTarget = async () => {
   try {
     // TODO: 调用后端API停止靶机
     await new Promise(resolve => setTimeout(resolve, 500)) // 模拟API调用
-    
+
     isTargetStarted.value = false
     stopTimer()
     remainingSec.value = 0
@@ -672,18 +672,18 @@ const fetchQuestionClasses = async () => {
 const fetchQuestions = async () => {
   try {
     loading.value = true
-    
+
     // 构建请求参数
     const params = {
       page: pagination.current,
       pageSize: pagination.pageSize
     }
-    
+
     // 添加搜索参数
     if (filters.search) {
       params.name = filters.search
     }
-    
+
     // 添加分类筛选
     if (filters.category) {
       const selectedCategory = questionClasses.value.find(cat => cat.name === filters.category)
@@ -691,7 +691,7 @@ const fetchQuestions = async () => {
         params.questionclassification = selectedCategory.ID
       }
     }
-    
+
     // 添加难度筛选
     if (filters.difficulty) {
       const selectedDifficulty = difficultyLevels.value.find(level => level.name === filters.difficulty)
@@ -699,7 +699,7 @@ const fetchQuestions = async () => {
         params.level = selectedDifficulty.ID
       }
     }
-    
+
     const response = await getQuestions(params)
     if (response.data && response.data.code === 0) {
       challenges.value = response.data.data.list || []
@@ -985,7 +985,7 @@ onMounted(async () => {
 }
 
 .challenge-cover {
-  
+
   background: linear-gradient(135deg, var(--color-primary-light-1), var(--color-primary-6));
   position: relative;
   display: flex;
@@ -1023,7 +1023,7 @@ onMounted(async () => {
   margin-bottom: 8px;
   line-height: 1.4;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  /*-webkit-line-clamp: 10;*/
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
