@@ -1,8 +1,16 @@
 <template>
   <div class="contest-container">
     <div class="header">
-      <h1>赛事中心</h1>
-      <p>参与精彩的CTF比赛，与全球顶尖选手同台竞技</p>
+      <div class="header-left">
+        <h1>赛事中心</h1>
+        <p>参与精彩的CTF比赛，与全球顶尖选手同台竞技</p>
+      </div>
+      <div class="header-right">
+        <a-button type="outline" @click="refreshContests" :loading="loading">
+          <icon-refresh />
+          刷新
+        </a-button>
+      </div>
     </div>
 
     <!-- 分类筛选 -->
@@ -18,80 +26,148 @@
         </div>
         <div 
           class="filter-option"
-          :class="{ active: selectedCategory === 'emergency' }"
-          @click="selectedCategory = 'emergency'"
+          :class="{ active: selectedCategory === 1 }"
+          @click="selectedCategory = 1"
         >
-          <span class="option-icon">🚨</span>
-          <span class="option-text">应急响应</span>
+          <span class="option-icon">👤</span>
+          <span class="option-text">个人赛</span>
         </div>
         <div 
           class="filter-option"
-          :class="{ active: selectedCategory === 'mixed' }"
-          @click="selectedCategory = 'mixed'"
+          :class="{ active: selectedCategory === 2 }"
+          @click="selectedCategory = 2"
         >
-          <span class="option-icon">🔄</span>
-          <span class="option-text">混合模式</span>
-        </div>
-        <div 
-          class="filter-option"
-          :class="{ active: selectedCategory === 'theory' }"
-          @click="selectedCategory = 'theory'"
-        >
-          <span class="option-icon">📚</span>
-          <span class="option-text">理论赛</span>
-        </div>
-        <div 
-          class="filter-option"
-          :class="{ active: selectedCategory === 'solve' }"
-          @click="selectedCategory = 'solve'"
-        >
-          <span class="option-icon">💻</span>
-          <span class="option-text">解题赛</span>
+          <span class="option-icon">👥</span>
+          <span class="option-text">团队赛</span>
         </div>
       </div>
     </div>
 
     <div class="tabs-wrapper">
       <a-tabs v-model:active-key="activeTab" @change="onTabChange">
-        <a-tab-pane key="ongoing" title="进行中">
+        <a-tab-pane key="all" title="全部">
           <div class="contest-list">
-            <a-row :gutter="[16, 16]">
-              <a-col 
-                v-for="contest in filteredOngoingContests" 
-                :key="contest.id" 
-                :span="12"
-              >
-                <contest-card :contest="contest" type="ongoing" />
-              </a-col>
-            </a-row>
+            <a-spin :spinning="loading" tip="加载中...">
+              <div v-if="!loading && filteredAllContests.length === 0" class="empty-state">
+                <div class="empty-icon">🏆</div>
+                <div class="empty-text">暂无赛事</div>
+                <div class="empty-subtext">敬请期待更多精彩赛事</div>
+              </div>
+              <div v-else class="contest-list-container">
+                <div 
+                  v-for="contest in filteredAllContests" 
+                  :key="contest.ID" 
+                  class="contest-list-item"
+                >
+                  <contest-card :contest="contest" :type="getContestType(contest)" />
+                </div>
+              </div>
+            </a-spin>
           </div>
         </a-tab-pane>
         
-        <a-tab-pane key="upcoming" title="即将开始">
+        <a-tab-pane key="1" title="筹备中">
           <div class="contest-list">
-            <a-row :gutter="[16, 16]">
-              <a-col 
-                v-for="contest in filteredUpcomingContests" 
-                :key="contest.id" 
-                :span="12"
-              >
-                <contest-card :contest="contest" type="upcoming" />
-              </a-col>
-            </a-row>
+            <a-spin :spinning="loading" tip="加载中...">
+              <div v-if="!loading && filteredStatusContests(1).length === 0" class="empty-state">
+                <div class="empty-icon">📋</div>
+                <div class="empty-text">暂无筹备中的赛事</div>
+                <div class="empty-subtext">敬请期待更多精彩赛事</div>
+              </div>
+              <div v-else class="contest-list-container">
+                <div 
+                  v-for="contest in filteredStatusContests(1)" 
+                  :key="contest.ID" 
+                  class="contest-list-item"
+                >
+                  <contest-card :contest="contest" :type="getContestType(contest)" />
+                </div>
+              </div>
+            </a-spin>
           </div>
         </a-tab-pane>
         
-        <a-tab-pane key="finished" title="已结束">
+        <a-tab-pane key="2" title="报名中">
           <div class="contest-list">
-            <a-row :gutter="[16, 16]">
-              <a-col 
-                v-for="contest in filteredFinishedContests" 
-                :key="contest.id" 
-                :span="12"
-              >
-                <contest-card :contest="contest" type="finished" />
-              </a-col>
-            </a-row>
+            <a-spin :spinning="loading" tip="加载中...">
+              <div v-if="!loading && filteredStatusContests(2).length === 0" class="empty-state">
+                <div class="empty-icon">📝</div>
+                <div class="empty-text">暂无报名中的赛事</div>
+                <div class="empty-subtext">敬请期待更多精彩赛事</div>
+              </div>
+              <div v-else class="contest-list-container">
+                <div 
+                  v-for="contest in filteredStatusContests(2)" 
+                  :key="contest.ID" 
+                  class="contest-list-item"
+                >
+                  <contest-card :contest="contest" :type="getContestType(contest)" />
+                </div>
+              </div>
+            </a-spin>
+          </div>
+        </a-tab-pane>
+        
+        <a-tab-pane key="3" title="进行中">
+          <div class="contest-list">
+            <a-spin :spinning="loading" tip="加载中...">
+              <div v-if="!loading && filteredStatusContests(3).length === 0" class="empty-state">
+                <div class="empty-icon">🚀</div>
+                <div class="empty-text">暂无进行中的赛事</div>
+                <div class="empty-subtext">敬请期待更多精彩赛事</div>
+              </div>
+              <div v-else class="contest-list-container">
+                <div 
+                  v-for="contest in filteredStatusContests(3)" 
+                  :key="contest.ID" 
+                  class="contest-list-item"
+                >
+                  <contest-card :contest="contest" :type="getContestType(contest)" />
+                </div>
+              </div>
+            </a-spin>
+          </div>
+        </a-tab-pane>
+        
+        <a-tab-pane key="4" title="已结束">
+          <div class="contest-list">
+            <a-spin :spinning="loading" tip="加载中...">
+              <div v-if="!loading && filteredStatusContests(4).length === 0" class="empty-state">
+                <div class="empty-icon">🏁</div>
+                <div class="empty-text">暂无已结束的赛事</div>
+                <div class="empty-subtext">敬请期待更多精彩赛事</div>
+              </div>
+              <div v-else class="contest-list-container">
+                <div 
+                  v-for="contest in filteredStatusContests(4)" 
+                  :key="contest.ID" 
+                  class="contest-list-item"
+                >
+                  <contest-card :contest="contest" :type="getContestType(contest)" />
+                </div>
+              </div>
+            </a-spin>
+          </div>
+        </a-tab-pane>
+        
+        <a-tab-pane key="5" title="已取消">
+          <div class="contest-list">
+            <a-spin :spinning="loading" tip="加载中...">
+              <div v-if="!loading && filteredStatusContests(5).length === 0" class="empty-state">
+                <div class="empty-icon">❌</div>
+                <div class="empty-text">暂无已取消的赛事</div>
+                <div class="empty-subtext">敬请期待更多精彩赛事</div>
+              </div>
+              <div v-else class="contest-list-container">
+                <div 
+                  v-for="contest in filteredStatusContests(5)" 
+                  :key="contest.ID" 
+                  class="contest-list-item"
+                >
+                  <contest-card :contest="contest" :type="getContestType(contest)" />
+                </div>
+              </div>
+            </a-spin>
           </div>
         </a-tab-pane>
       </a-tabs>
@@ -102,9 +178,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import ContestCard from './components/ContestCard.vue'
+import { getEventCPublic } from '@/api/contest'
+import { IconRefresh } from '@arco-design/web-vue/es/icon'
 
-const activeTab = ref('ongoing')
+const activeTab = ref('all')
 const selectedCategory = ref('')
+const loading = ref(false)
+const contests = ref([])
 
 // 分类筛选
 const filterContests = (contests) => {
@@ -112,126 +192,108 @@ const filterContests = (contests) => {
     return contests
   }
   return contests.filter(contest => {
-    return contest.contestType === selectedCategory.value
+    return contest.eventType === selectedCategory.value
   })
 }
 
+// 根据状态过滤比赛
+const getContestsByStatus = (status) => {
+  if (status === 'all') {
+    return contests.value
+  }
+  return contests.value.filter(contest => contest.status === parseInt(status))
+}
+
 // 过滤后的比赛列表
-const filteredOngoingContests = computed(() => filterContests(ongoingContests.value))
-const filteredUpcomingContests = computed(() => filterContests(upcomingContests.value))
-const filteredFinishedContests = computed(() => filterContests(finishedContests.value))
+const filteredAllContests = computed(() => filterContests(getContestsByStatus('all')))
+const filteredStatusContests = (status) => filterContests(getContestsByStatus(status))
 
-// 进行中的比赛
-const ongoingContests = ref([
-  {
-    id: 1,
-    title: '全国大学生网络安全大赛',
-    description: '面向全国大学生的综合性网络安全竞赛',
-    startTime: '2024-01-15 09:00:00',
-    endTime: '2024-01-17 18:00:00',
-    participants: 1250,
-    maxParticipants: 2000,
-    prize: '总奖金池 50,000 元',
-    organizer: '教育部网络安全教学指导委员会',
-    difficulty: 'medium',
-    categories: ['Web', '密码学', 'PWN', '逆向', '杂项'],
-    contestType: 'mixed'
-  },
-  {
-    id: 2,
-    title: 'HackTheBox CTF 2024',
-    description: '国际知名CTF平台举办的年度大赛',
-    startTime: '2024-01-16 12:00:00',
-    endTime: '2024-01-16 24:00:00',
-    participants: 856,
-    maxParticipants: 1000,
-    prize: '$10,000 USD',
-    organizer: 'HackTheBox',
-    difficulty: 'hard',
-    categories: ['Web', 'PWN', '逆向'],
-    contestType: 'solve'
+// 获取赛事数据
+const fetchContests = async () => {
+  try {
+    loading.value = true
+    const response = await getEventCPublic({
+      page: 1,
+      pageSize: 100
+    })
+    
+    if (response.data.code === 0) {
+      contests.value = response.data.data.list || []
+    } else {
+      console.error('获取赛事数据失败:', response.data.msg)
+    }
+  } catch (error) {
+    console.error('获取赛事数据失败:', error)
+  } finally {
+    loading.value = false
   }
-])
-
-// 即将开始的比赛
-const upcomingContests = ref([
-  {
-    id: 3,
-    title: '春季新生友谊赛',
-    description: '专为CTF新手设计的友谊赛',
-    startTime: '2024-01-20 14:00:00',
-    endTime: '2024-01-21 18:00:00',
-    participants: 0,
-    maxParticipants: 500,
-    prize: '证书 + 奖品',
-    organizer: 'CTF学习社区',
-    difficulty: 'easy',
-    categories: ['Web', '密码学', '杂项'],
-    contestType: 'theory'
-  },
-  {
-    id: 4,
-    title: '企业安全挑战赛',
-    description: '真实企业环境下的安全挑战',
-    startTime: '2024-01-25 09:00:00',
-    endTime: '2024-01-27 18:00:00',
-    participants: 0,
-    maxParticipants: 300,
-    prize: '实习机会 + 现金奖励',
-    organizer: '腾讯安全',
-    difficulty: 'hard',
-    categories: ['Web', 'PWN', '移动安全'],
-    contestType: 'emergency'
-  }
-])
-
-// 已结束的比赛
-const finishedContests = ref([
-  {
-    id: 5,
-    title: '2023年末总决赛',
-    description: '2023年度最高水平的CTF比赛',
-    startTime: '2023-12-20 09:00:00',
-    endTime: '2023-12-22 18:00:00',
-    participants: 1500,
-    maxParticipants: 1500,
-    prize: '总奖金池 100,000 元',
-    organizer: 'CTF联盟',
-    difficulty: 'hard',
-    categories: ['Web', '密码学', 'PWN', '逆向', '杂项', 'AI安全'],
-    winner: 'Team Dragon',
-    contestType: 'mixed'
-  }
-])
+}
 
 const onTabChange = (key) => {
   console.log('切换到标签:', key)
 }
 
+const refreshContests = () => {
+  fetchContests()
+}
+
+// 根据赛事状态确定显示类型
+const getContestType = (contest) => {
+  switch (contest.status) {
+    case 1:
+      return 'preparing' // 筹备中
+    case 2:
+      return 'registering' // 报名中
+    case 3:
+      return 'ongoing' // 进行中
+    case 4:
+      return 'finished' // 已结束
+    case 5:
+      return 'cancelled' // 已取消
+    default:
+      return 'unknown'
+  }
+}
+
 onMounted(() => {
-  // 初始化数据
+  // 获取赛事数据
+  fetchContests()
 })
 </script>
 
 <style scoped>
 .contest-container {
-  padding: 20px;
+  padding: 20px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .header {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 30px;
 }
 
-.header h1 {
-  font-size: 28px;
-  color: var(--color-text-1);
-  margin-bottom: 8px;
+.header-left {
+  flex: 1;
 }
 
-.header p {
+.header-left h1 {
+  font-size: 28px;
+  color: var(--color-text-1);
+  margin: 0 0 8px 0;
+}
+
+.header-left p {
   color: var(--color-text-3);
   font-size: 16px;
+  margin: 0;
+}
+
+.header-right {
+  flex-shrink: 0;
+  margin-left: 20px;
 }
 
 .category-filters {
@@ -260,7 +322,6 @@ onMounted(() => {
   background: var(--color-bg-1);
   user-select: none;
   color: var(--color-text-2);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .filter-option:hover {
@@ -270,15 +331,9 @@ onMounted(() => {
 }
 
 .filter-option.active {
-  border-color: #1677ff !important;
-  background: #e6f4ff !important;
-  color: #0958d9 !important;
-  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.15) !important;
-}
-
-.filter-option.active .option-icon,
-.filter-option.active .option-text {
-  color: #0958d9 !important;
+  border-color: #1677ff;
+  background: #e6f4ff;
+  color: #0958d9;
 }
 
 .option-icon {
@@ -296,5 +351,64 @@ onMounted(() => {
 
 .contest-list {
   padding: 20px 0;
+}
+
+/* 2列网格布局 */
+.contest-list-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.contest-list-item {
+  width: 100%;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .contest-container {
+    padding: 16px;
+  }
+  
+  .contest-list-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .header {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .header-right {
+    margin-left: 0;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-text {
+  font-size: 16px;
+  color: var(--color-text-2);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.empty-subtext {
+  font-size: 14px;
+  color: var(--color-text-3);
 }
 </style>

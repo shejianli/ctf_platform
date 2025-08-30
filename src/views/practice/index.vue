@@ -150,40 +150,51 @@
           </a-button>
         </div>
 
-        <div class="dynamics-list">
-          <div
-            v-for="dynamic in solvingDynamics"
-            :key="dynamic.id"
-            class="dynamic-item"
-            :class="dynamic.type"
-          >
-            <div class="dynamic-avatar">
-              <a-avatar :size="32" :src="dynamic.userAvatar">
-                {{ dynamic.userName.charAt(0) }}
-              </a-avatar>
-            </div>
-            <div class="dynamic-content">
-              <div class="dynamic-user">{{ dynamic.userName }}</div>
-              <div class="dynamic-action">
-                <span v-if="dynamic.type === 'solved'">解出了</span>
-                <span v-else-if="dynamic.type === 'attempted'">尝试了</span>
-                <span v-else-if="dynamic.type === 'first-blood'">首杀</span>
-                <span class="challenge-name">{{ dynamic.challengeName }}</span>
+        <a-spin :loading="dynamicsLoading" tip="加载中...">
+          <div class="dynamics-list">
+            <!-- 有数据时显示动态列表 -->
+            <div
+              v-if="solvingDynamics.length > 0"
+              v-for="dynamic in solvingDynamics"
+              :key="dynamic.id"
+              class="dynamic-item"
+              :class="dynamic.type"
+            >
+              <div class="dynamic-avatar">
+                <a-avatar :size="32" :src="dynamic.userAvatar">
+                  {{ dynamic.userName.charAt(0) }}
+                </a-avatar>
               </div>
-              <div class="dynamic-time">{{ formatTimeAgo(dynamic.timestamp) }}</div>
+              <div class="dynamic-content">
+                <div class="dynamic-user">{{ dynamic.userName }}</div>
+                <div class="dynamic-action">
+                  <span v-if="dynamic.type === 'solved'">解出了</span>
+                  <span v-else-if="dynamic.type === 'attempted'">尝试了</span>
+                  <span v-else-if="dynamic.type === 'first-blood'">首杀</span>
+                  <span class="challenge-name">{{ dynamic.challengeName }}</span>
+                  <span v-if="dynamic.coinsNumber > 0" class="coins-info">
+                    <icon-coin style="color: #faad14; margin-left: 4px;" />
+                    +{{ dynamic.coinsNumber }}
+                  </span>
+                </div>
+                <div class="dynamic-time">{{ formatTimeAgo(dynamic.timestamp) }}</div>
+              </div>
+              <div class="dynamic-badge" :class="dynamic.type">
+                <icon-trophy v-if="dynamic.type === 'solved' || dynamic.type === 'first-blood'" />
+                <icon-clock-circle v-else />
+              </div>
             </div>
-            <div class="dynamic-badge" :class="dynamic.type">
-              <icon-trophy v-if="dynamic.type === 'solved' || dynamic.type === 'first-blood'" />
-              <icon-clock-circle v-else />
+            
+            <!-- 没有数据时显示空状态 -->
+            <div v-else-if="!dynamicsLoading" class="empty-dynamics">
+              <div class="empty-icon">📝</div>
+              <div class="empty-text">暂无解题动态</div>
+              <div class="empty-subtext">快来挑战第一道题目吧！</div>
             </div>
           </div>
-        </div>
+        </a-spin>
 
-        <div class="dynamics-footer">
-          <a-button type="text" size="small" @click="viewAllDynamics">
-            查看全部动态
-          </a-button>
-        </div>
+
       </div>
     </div>
 
@@ -290,7 +301,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { IconSearch, IconTrophy, IconUser, IconRefresh, IconClockCircle } from '@arco-design/web-vue/es/icon'
-import { getDifficultyLevels, getQuestionClasses, getQuestions } from '@/api/practice'
+import { getDifficultyLevels, getQuestionClasses, getQuestions, getTopicSuccessfully } from '@/api/practice'
 
 // 筛选条件
 const filters = reactive({
@@ -416,81 +427,47 @@ const hasExtended = ref(false)
 let countdownTimer = null
 
 // 解题动态数据
-const solvingDynamics = ref([
-  {
-    id: 1,
-    userName: 'CTF大师',
-    userAvatar: 'https://p1-arco.byteimg.com/tos-cn-i-uwbnlip3yd/3ee5f13fb09879ecb5185e440cef6eb9.png~tplv-uwbnlip3yd-webp.webp',
-    challengeName: 'SQL注入基础',
-    type: 'first-blood',
-    timestamp: Date.now() - 1000 * 60 * 5 // 5分钟前
-  },
-  {
-    id: 2,
-    userName: '安全小白',
-    userAvatar: '',
-    challengeName: 'XSS跨站脚本',
-    type: 'solved',
-    timestamp: Date.now() - 1000 * 60 * 15 // 15分钟前
-  },
-  {
-    id: 3,
-    userName: '逆向工程师',
-    userAvatar: '',
-    challengeName: '缓冲区溢出',
-    type: 'attempted',
-    timestamp: Date.now() - 1000 * 60 * 30 // 30分钟前
-  },
-  {
-    id: 4,
-    userName: 'Web安全专家',
-    userAvatar: '',
-    challengeName: 'XSS跨站脚本',
-    type: 'solved',
-    timestamp: Date.now() - 1000 * 60 * 45 // 45分钟前
-  },
-  {
-    id: 5,
-    userName: '密码学爱好者',
-    userAvatar: '',
-    challengeName: '缓冲区溢出',
-    type: 'attempted',
-    timestamp: Date.now() - 1000 * 60 * 60 // 1小时前
-  },
-  {
-    id: 6,
-    userName: 'PWN高手',
-    userAvatar: '',
-    challengeName: '缓冲区溢出',
-    type: 'solved',
-    timestamp: Date.now() - 1000 * 60 * 90 // 1.5小时前
+const solvingDynamics = ref([])
+const dynamicsLoading = ref(false)
+
+// 获取解题动态
+const fetchSolvingDynamics = async () => {
+  try {
+    dynamicsLoading.value = true
+    const response = await getTopicSuccessfully({
+      page: 1,
+      pageSize: 10
+    })
+    
+    if (response.data.code === 0) {
+      const dynamicsList = response.data.data.list || []
+      
+      // 映射解题动态数据
+      solvingDynamics.value = dynamicsList.map(dynamic => ({
+        id: dynamic.ID,
+        userName: dynamic.userModel?.nickName || dynamic.userModel?.username || '未知用户',
+        userAvatar: dynamic.userModel?.avatar || '',
+        challengeName: dynamic.titleModel?.name || '未知题目',
+        type: dynamic.firstSuccess ? 'first-blood' : 'solved',
+        timestamp: new Date(dynamic.CreatedAt).getTime(),
+        coinsNumber: dynamic.coinsNumber || 0
+      }))
+    } else {
+      console.error('获取解题动态失败:', response.data.msg)
+    }
+  } catch (error) {
+    console.error('获取解题动态失败:', error)
+  } finally {
+    dynamicsLoading.value = false
   }
-])
+}
 
 // 刷新解题动态
 const refreshDynamics = () => {
-  // 模拟添加新的动态
-  const newDynamic = {
-    id: Date.now(),
-    userName: '新用户' + Math.floor(Math.random() * 1000),
-    userAvatar: '',
-    challengeName: challenges.value.length > 0 ? challenges.value[Math.floor(Math.random() * challenges.value.length)].name : '题目',
-    type: ['solved', 'attempted', 'first-blood'][Math.floor(Math.random() * 3)],
-    timestamp: Date.now()
-  }
-  solvingDynamics.value.unshift(newDynamic)
-
-  // 保持最多显示10条动态
-  if (solvingDynamics.value.length > 10) {
-    solvingDynamics.value = solvingDynamics.value.slice(0, 10)
-  }
+  fetchSolvingDynamics()
 }
 
-// 查看全部动态
-const viewAllDynamics = () => {
-  console.log('查看全部解题动态')
-  // TODO: 跳转到动态页面或展开更多
-}
+
 
 // 格式化时间
 const formatTimeAgo = (timestamp) => {
@@ -717,7 +694,8 @@ onMounted(async () => {
   await Promise.all([
     fetchDifficultyLevels(),
     fetchQuestionClasses(),
-    fetchQuestions()
+    fetchQuestions(),
+    fetchSolvingDynamics()
   ])
 })
 </script>
@@ -766,6 +744,34 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.empty-dynamics {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  min-height: 200px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-text {
+  font-size: 14px;
+  color: var(--color-text-2);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.empty-subtext {
+  font-size: 12px;
+  color: var(--color-text-3);
 }
 
 .dynamic-item {
@@ -823,6 +829,12 @@ onMounted(async () => {
   font-weight: 500;
 }
 
+.coins-info {
+  font-size: 12px;
+  color: #faad14;
+  font-weight: 500;
+}
+
 .dynamic-time {
   font-size: 11px;
   color: var(--color-text-3);
@@ -854,12 +866,7 @@ onMounted(async () => {
   color: #f5222d;
 }
 
-.dynamics-footer {
-  margin-top: 16px;
-  text-align: center;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border);
-}
+
 
 .header-row {
   display: flex;
@@ -891,7 +898,7 @@ onMounted(async () => {
 }
 
 .filters {
-  margin-bottom: 30px;
+  margin-bottom: 16px;
   background: var(--color-bg-2);
   border-radius: 12px;
   padding: 20px;

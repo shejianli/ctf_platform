@@ -38,6 +38,12 @@ export const routes = [
       name: 'contest',
       component: () => import('@/views/contest/index.vue'),
       meta: { title: '赛事中心', icon: 'icon-fire' }
+    }, {
+      path: 'detail/:id',
+      name: 'contest-detail',
+      component: () => import('@/views/contest/detail.vue'),
+      meta: { title: '比赛详情', icon: 'icon-fire' },
+      hidden: true
     }]
   },
 

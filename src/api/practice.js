@@ -26,3 +26,12 @@ export function getQuestions(params) {
     params
   })
 }
+
+// 获取解题动态（开放接口）
+export function getTopicSuccessfully(params) {
+  return request({
+    url: '/Ts/getToipcSuccessfullyPublic',
+    method: 'get',
+    params
+  })
+}

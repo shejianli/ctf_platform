@@ -51,48 +51,57 @@
         <a-col :span="24">
           <!-- 大题网格 -->
           <a-spin :loading="loading" tip="加载中...">
-            <div class="challenges-grid">
-              <div
+            <a-row :gutter="[16, 16]">
+              <a-col
                 v-for="challenge in filteredChallenges"
                 :key="challenge.id"
-                class="challenge-card"
-                :class="{
-                  'completed': challenge.completed,
-                  'locked': challenge.locked,
-                  'current': challenge.id === userProgress.currentChallenge
-                }"
-                @click="selectChallenge(challenge)"
+                :xxl="6"
+                :xl="8"
+                :lg="12"
+                :md="12"
+                :sm="24"
+                :xs="24"
               >
-                <div class="challenge-content">
-                  <h3 class="challenge-title">{{ challenge.title }}</h3>
-                  <p class="challenge-description">{{ challenge.description }}</p>
-                  <div class="challenge-meta">
-                    <div class="challenge-difficulty">
-                      <a-tag :color="getDifficultyColor(challenge.difficulty)" size="small">
-                        {{ challenge.difficulty }}
+                <div
+                  class="challenge-card"
+                  :class="{
+                    'completed': challenge.completed,
+                    'locked': challenge.locked,
+                    'current': challenge.id === userProgress.currentChallenge
+                  }"
+                  @click="selectChallenge(challenge)"
+                >
+                  <div class="challenge-content">
+                    <h3 class="challenge-title">{{ challenge.title }}</h3>
+                    <p class="challenge-description">{{ challenge.description }}</p>
+                    <div class="challenge-meta">
+                      <div class="challenge-difficulty">
+                        <a-tag :color="getDifficultyColor(challenge.difficulty)" size="small">
+                          {{ challenge.difficulty }}
+                        </a-tag>
+                      </div>
+                      <div class="challenge-points">
+                        <icon-trophy />
+                        {{ challenge.totalPoints }}分
+                      </div>
+                    </div>
+                    <div class="challenge-progress">
+                      <div class="progress-info">
+                        <span>{{ challenge.completedSubCount }}/{{ challenge.totalSubCount }} 小题</span>
+                      </div>
+                      <div class="progress-bar">
+                        <div class="progress-fill" :style="{ width: challenge.totalSubCount > 0 ? (challenge.completedSubCount / challenge.totalSubCount) * 100 + '%' : '0%' }"></div>
+                      </div>
+                    </div>
+                    <div class="challenge-tags">
+                      <a-tag v-for="tag in challenge.tags" :key="tag" size="small" color="blue">
+                        {{ tag }}
                       </a-tag>
                     </div>
-                    <div class="challenge-points">
-                      <icon-trophy />
-                      {{ challenge.totalPoints }}分
-                    </div>
-                  </div>
-                  <div class="challenge-progress">
-                    <div class="progress-info">
-                      <span>{{ challenge.completedSubCount }}/{{ challenge.totalSubCount }} 小题</span>
-                    </div>
-                    <div class="progress-bar">
-                      <div class="progress-fill" :style="{ width: challenge.totalSubCount > 0 ? (challenge.completedSubCount / challenge.totalSubCount) * 100 + '%' : '0%' }"></div>
-                    </div>
-                  </div>
-                  <div class="challenge-tags">
-                    <a-tag v-for="tag in challenge.tags" :key="tag" size="small" color="blue">
-                      {{ tag }}
-                    </a-tag>
                   </div>
                 </div>
-              </div>
-            </div>
+              </a-col>
+            </a-row>
           </a-spin>
 
           <!-- 分页 -->
@@ -853,9 +862,6 @@ onUnmounted(() => {
 }
 
 .challenges-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 20px;
   margin-bottom: 24px;
 }
 
@@ -1415,54 +1421,27 @@ onUnmounted(() => {
 }
 
 /* 响应式设计 */
-@media (max-width: 1200px) {
-  .challenges-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 900px) {
-  .challenges-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
   .challenge-container {
     padding: 16px;
   }
 
   .challenge-header {
-    padding: 20px;
+    padding: 16px;
   }
 
   .header-stats {
     flex-direction: column;
-    gap: 20px;
-  }
-
-  .challenges-grid {
-    grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .challenge-content {
     flex-direction: column;
   }
 
-
-
-  .carousel-content {
-    height: 200px;
-  }
-
-
-
   .challenge-card {
     padding: 16px;
-    gap: 10px;
   }
-
-
 
   .overview-stats {
     flex-direction: column;
@@ -1477,7 +1456,7 @@ onUnmounted(() => {
 
   .overview-info h3,
   .overview-info p {
-    max-width: 200px;
+    max-width: 100%;
   }
 
   .challenge-title,
