@@ -179,12 +179,74 @@
         </div>
       </div>
     </div>
+
+    <!-- 报名弹窗 -->
+    <a-modal
+      v-model:visible="showRegistrationModal"
+      title="报名参加比赛"
+      :width="500"
+      @ok="confirmRegistration"
+      @cancel="() => { showRegistrationModal = false; registrationForm.teamId = null; selectedGame = null; }"
+    >
+      <div class="registration-form">
+        <a-form :model="registrationForm" layout="vertical">
+          <a-form-item label="比赛信息">
+            <div class="game-info">
+              <p><strong>比赛名称:</strong> {{ selectedGame?.title }}</p>
+              <p><strong>开始时间:</strong> {{ selectedGame?.startTime }}</p>
+              <p><strong>比赛时长:</strong> {{ selectedGame?.duration }}分钟</p>
+              <p><strong>题目数量:</strong> {{ selectedGame?.totalChallenges }}道</p>
+            </div>
+          </a-form-item>
+          
+          <a-form-item label="选择队伍">
+            <a-select
+              v-model="registrationForm.teamId"
+              placeholder="请选择要参赛的队伍"
+            >
+              <a-option 
+                v-for="team in availableTeams" 
+                :key="team.id"
+                :value="team.id"
+              >
+                {{ team.name }} ({{ team.memberCount }}人)
+              </a-option>
+            </a-select>
+          </a-form-item>
+          
+          <a-form-item label="确认信息">
+            <div class="confirm-info">
+              <p>请确认以上信息无误，报名后将无法更改。</p>
+              <p>比赛开始前30分钟可以取消报名。</p>
+            </div>
+          </a-form-item>
+        </a-form>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { Message } from '@arco-design/web-vue'
 import { IconPlus, IconClockCircle, IconUser, IconTrophy, IconUserGroup } from '@arco-design/web-vue/es/icon'
+
+const router = useRouter()
+
+// 响应式数据
+const showRegistrationModal = ref(false)
+const selectedGame = ref(null)
+const registrationForm = ref({
+  teamId: null
+})
+
+// 可用队伍列表
+const availableTeams = ref([
+  { id: 1, name: '安全小分队', memberCount: 4 },
+  { id: 2, name: '渗透测试队', memberCount: 3 },
+  { id: 3, name: '代码审计者', memberCount: 4 }
+])
 
 // AWD比赛数据
 const awdGames = ref([
@@ -324,26 +386,40 @@ const formatTimeAgo = (timestamp) => {
 // 进入比赛
 const enterGame = (game) => {
   console.log('进入比赛:', game.title)
-  // TODO: 跳转到具体的比赛页面
-  // router.push(`/awd/game/${game.id}`)
+  router.push(`/awd/detail/${game.id}`)
 }
 
 // 报名参加比赛
 const joinGame = (game) => {
   console.log('报名参加比赛:', game.title)
-  // TODO: 实现报名逻辑
+  showRegistrationModal.value = true
+  selectedGame.value = game
 }
 
 // 查看比赛结果
 const viewResult = (game) => {
   console.log('查看比赛结果:', game.title)
-  // TODO: 跳转到结果页面
+  router.push(`/awd/result/${game.id}`)
 }
 
 // 创建比赛
 const createGame = () => {
   console.log('创建新比赛')
   // TODO: 实现创建比赛逻辑
+}
+
+// 确认报名
+const confirmRegistration = () => {
+  if (!registrationForm.value.teamId) {
+    Message.error('请选择参赛队伍')
+    return
+  }
+  
+  // TODO: 调用报名API
+  Message.success('报名成功！')
+  showRegistrationModal.value = false
+  registrationForm.value.teamId = null
+  selectedGame.value = null
 }
 
 onMounted(() => {
@@ -613,8 +689,46 @@ onMounted(() => {
   margin-bottom: 4px;
 }
 
-.game-info .game-time {
-  font-size: 12px;
-  color: var(--color-text-3);
-}
+  .game-info .game-time {
+    font-size: 12px;
+    color: var(--color-text-3);
+  }
+
+  /* 报名弹窗样式 */
+  .registration-form {
+    padding: 16px 0;
+  }
+
+  .game-info {
+    background: var(--color-fill-1);
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+
+  .game-info p {
+    margin: 0 0 8px 0;
+    color: var(--color-text-2);
+    font-size: 14px;
+  }
+
+  .game-info p:last-child {
+    margin-bottom: 0;
+  }
+
+  .confirm-info {
+    background: var(--color-fill-1);
+    padding: 16px;
+    border-radius: 8px;
+  }
+
+  .confirm-info p {
+    margin: 0 0 8px 0;
+    color: var(--color-text-2);
+    font-size: 14px;
+  }
+
+  .confirm-info p:last-child {
+    margin-bottom: 0;
+  }
 </style>

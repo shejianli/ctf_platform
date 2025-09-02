@@ -44,6 +44,12 @@ export const routes = [
       component: () => import('@/views/contest/detail.vue'),
       meta: { title: '比赛详情', icon: 'icon-fire' },
       hidden: true
+    }, {
+      path: 'contest/:id',
+      name: 'contest-interface',
+      component: () => import('@/views/contest/contest.vue'),
+      meta: { title: '比赛界面', icon: 'icon-fire' },
+      hidden: true
     }]
   },
 
@@ -76,6 +82,24 @@ export const routes = [
       name: 'awd',
       component: () => import('@/views/awd/index.vue'),
       meta: { title: 'AWD攻防', icon: 'icon-sword' }
+    }, {
+      path: 'detail/:id',
+      name: 'awd-detail',
+      component: () => import('@/views/awd/detail.vue'),
+      meta: { title: 'AWD比赛详情', icon: 'icon-sword' },
+      hidden: true
+    }, {
+      path: 'game/:id',
+      name: 'awd-game',
+      component: () => import('@/views/awd/game.vue'),
+      meta: { title: 'AWD比赛界面', icon: 'icon-sword' },
+      hidden: true
+    }, {
+      path: 'result/:id',
+      name: 'awd-result',
+      component: () => import('@/views/awd/result.vue'),
+      meta: { title: 'AWD比赛结果', icon: 'icon-sword' },
+      hidden: true
     }]
   },
 

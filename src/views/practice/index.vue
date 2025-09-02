@@ -25,14 +25,9 @@
     </div>
 
     <div class="filters">
-      <!-- 加载状态 -->
-      <div v-if="loading" class="loading-wrapper">
-        <a-spin size="large" />
-        <p>正在加载数据...</p>
-      </div>
 
       <!-- 筛选条件 -->
-      <div v-else class="filter-sections">
+      <div class="filter-sections">
         <div class="filter-section">
           <span class="filter-label">题目分类</span>
           <a-tabs
@@ -76,7 +71,13 @@
 
     <div class="practice-main">
       <div class="challenges-section">
-        <div class="challenges-grid">
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading-wrapper">
+          <a-spin size="large" />
+          <p>正在加载数据...</p>
+        </div>
+
+        <div class="challenges-grid" v-else>
           <a-row :gutter="[12, 12]">
             <a-col
               v-for="challenge in challenges"
@@ -184,7 +185,7 @@
                 <icon-clock-circle v-else />
               </div>
             </div>
-            
+
             <!-- 没有数据时显示空状态 -->
             <div v-else-if="!dynamicsLoading" class="empty-dynamics">
               <div class="empty-icon">📝</div>
@@ -438,10 +439,10 @@ const fetchSolvingDynamics = async () => {
       page: 1,
       pageSize: 10
     })
-    
+
     if (response.data.code === 0) {
       const dynamicsList = response.data.data.list || []
-      
+
       // 映射解题动态数据
       solvingDynamics.value = dynamicsList.map(dynamic => ({
         id: dynamic.ID,
@@ -615,7 +616,8 @@ const fetchDifficultyLevels = async () => {
     loading.value = true
     const response = await getDifficultyLevels({
       page: 1,
-      pageSize: 100
+      pageSize: 100,
+      category: 'ctf'
     })
     if (response.data && response.data.code === 0) {
       difficultyLevels.value = response.data.data.list || []

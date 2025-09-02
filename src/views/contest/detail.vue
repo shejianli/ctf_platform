@@ -148,6 +148,92 @@
       </div>
     </div>
 
+    <!-- 题目列表 -->
+    <div class="contest-challenges">
+      <div class="challenges-header">
+        <h2>比赛题目</h2>
+        <div class="challenges-filter">
+          <div class="filter-option" 
+               :class="{ active: statusFilter === 'all' }"
+               @click="() => statusFilter = 'all'">
+            全部题目
+          </div>
+          <div class="filter-option" 
+               :class="{ active: statusFilter === 'solved' }"
+               @click="() => statusFilter = 'solved'">
+            已解决
+          </div>
+          <div class="filter-option" 
+               :class="{ active: statusFilter === 'unsolved' }"
+               @click="() => statusFilter = 'unsolved'">
+            未解决
+          </div>
+        </div>
+      </div>
+      
+      <div class="challenges-grid">
+        <a-row :gutter="[16, 16]">
+          <a-col
+            v-for="challenge in filteredChallenges"
+            :key="challenge.id"
+            :xxl="6"
+            :xl="8"
+            :lg="12"
+            :md="12"
+            :sm="24"
+            :xs="24"
+          >
+            <a-card
+              class="challenge-card"
+              hoverable
+              @click="openChallenge(challenge)"
+            >
+              <template #cover>
+                <div class="challenge-cover">
+                  <div class="challenge-status">
+                    <a-tag :color="getChallengeStatusColor(challenge.status)" size="small">
+                      {{ getChallengeStatusText(challenge.status) }}
+                    </a-tag>
+                  </div>
+                  <div class="challenge-points">
+                    <icon-trophy />
+                    {{ challenge.points }}分
+                  </div>
+                </div>
+              </template>
+
+              <div class="challenge-content">
+                <div class="challenge-header">
+                  <h4 class="challenge-title">{{ challenge.name }}</h4>
+                  <a-tag :color="getCategoryColor(challenge.category)" size="small">
+                    {{ getCategoryName(challenge.category) }}
+                  </a-tag>
+                </div>
+
+                <div class="challenge-meta">
+                  <span class="challenge-solved">
+                    <icon-user />
+                    {{ challenge.solvedCount }}人解决
+                  </span>
+                </div>
+
+                <div class="challenge-tags">
+                  <a-tag
+                    v-for="tag in challenge.tags"
+                    :key="tag"
+                    size="small"
+                    class="challenge-tag"
+                  >
+                    {{ tag }}
+                  </a-tag>
+                </div>
+              </div>
+            </a-card>
+          </a-col>
+        </a-row>
+      </div>
+    </div>
+
     <!-- 奖项设置 -->
     <div class="contest-prizes">
       <h2>奖项设置</h2>
@@ -175,14 +261,75 @@
         </div>
       </div>
     </div>
+
+    <!-- 题目详情弹窗 -->
+    <a-modal
+      v-model:visible="challengeDetailVisible"
+      :title="selectedChallenge?.name"
+      :width="800"
+      :footer="false"
+    >
+      <div v-if="selectedChallenge" class="challenge-detail-modal">
+        <div class="detail-content">
+          <h4>📋 题目描述</h4>
+          <div class="description">{{ selectedChallenge.description }}</div>
+          
+          <h4>💡 提示信息</h4>
+          <div class="hints">
+            <div 
+              v-for="(hint, index) in selectedChallenge.hints" 
+              :key="index"
+              class="hint-item"
+            >
+              <span class="hint-number">提示 {{ index + 1 }}</span>
+              <span class="hint-content">{{ hint.content }}</span>
+            </div>
+          </div>
+          
+          <h4>📎 附件下载</h4>
+          <div class="attachments">
+            <a-button
+              v-for="attachment in selectedChallenge.attachments"
+              :key="attachment.id"
+              type="outline"
+              size="small"
+              @click="downloadAttachment(attachment)"
+            >
+              <icon-download />
+              {{ attachment.name }}
+            </a-button>
+          </div>
+        </div>
+
+        <div class="submission-section">
+          <h4>🚩 提交答案</h4>
+          <div class="submission-form">
+            <a-input
+              v-model="flagInput"
+              placeholder="请输入flag格式: flag{...}"
+              size="large"
+              @keyup.enter="submitFlag"
+            />
+            <a-button
+              type="primary"
+              size="large"
+              :loading="submitting"
+              @click="submitFlag"
+            >
+              提交答案
+            </a-button>
+          </div>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Message } from '@arco-design/web-vue'
-import { IconLeft, IconUserAdd, IconPlayCircle, IconTrophy, IconBarChart } from '@arco-design/web-vue/es/icon'
+import { IconLeft, IconUserAdd, IconPlayCircle, IconTrophy, IconBarChart, IconUser, IconDownload } from '@arco-design/web-vue/es/icon'
 // import { getEventCDetail, registerEvent, cancelRegistration } from '@/api/contest'
 
 const route = useRoute()
@@ -206,6 +353,123 @@ const contest = ref({
 })
 const registering = ref(false)
 const loading = ref(false)
+
+// 题目相关数据
+const statusFilter = ref('all')
+const selectedChallenge = ref(null)
+const challengeDetailVisible = ref(false)
+const flagInput = ref('')
+const submitting = ref(false)
+
+// 题目数据
+const challenges = ref([
+  {
+    id: 1,
+    name: 'Web基础注入',
+    category: 'web',
+    points: 100,
+    status: 'unsolved',
+    solvedCount: 45,
+    description: '这是一个基础的SQL注入题目，你需要找到隐藏在网页中的flag。',
+    hints: [
+      { content: '注意URL参数', cost: 10 },
+      { content: '尝试单引号', cost: 20 }
+    ],
+    attachments: [
+      { id: 1, name: 'web_injection.zip', url: '#' }
+    ],
+    tags: ['Web安全', 'SQL注入']
+  },
+  {
+    id: 2,
+    name: '文件上传绕过',
+    category: 'web',
+    points: 200,
+    status: 'solved',
+    solvedCount: 23,
+    description: '绕过文件上传限制，上传webshell获取flag。',
+    hints: [
+      { content: '检查文件类型验证', cost: 10 },
+      { content: '尝试双写绕过', cost: 20 }
+    ],
+    attachments: [
+      { id: 2, name: 'file_upload.zip', url: '#' }
+    ],
+    tags: ['Web安全', '文件上传']
+  },
+  {
+    id: 3,
+    name: 'XSS反射型',
+    category: 'web',
+    points: 150,
+    status: 'attempted',
+    solvedCount: 67,
+    description: '构造XSS payload，在页面中执行JavaScript代码。',
+    hints: [
+      { content: '注意输入过滤', cost: 15 }
+    ],
+    attachments: [],
+    tags: ['Web安全', 'XSS']
+  },
+  {
+    id: 4,
+    name: 'RSA加密',
+    category: 'crypto',
+    points: 300,
+    status: 'unsolved',
+    solvedCount: 12,
+    description: '破解RSA加密，找到明文flag。',
+    hints: [
+      { content: '检查公钥信息', cost: 25 },
+      { content: '尝试共模攻击', cost: 50 }
+    ],
+    attachments: [
+      { id: 4, name: 'rsa_challenge.zip', url: '#' }
+    ],
+    tags: ['密码学', 'RSA']
+  },
+  {
+    id: 5,
+    name: '逆向分析',
+    category: 'reverse',
+    points: 250,
+    status: 'unsolved',
+    solvedCount: 18,
+    description: '分析二进制文件，找到隐藏的flag。',
+    hints: [
+      { content: '使用IDA Pro分析', cost: 20 }
+    ],
+    attachments: [
+      { id: 5, name: 'reverse_binary.exe', url: '#' }
+    ],
+    tags: ['逆向工程', '二进制分析']
+  },
+  {
+    id: 6,
+    name: '缓冲区溢出',
+    category: 'pwn',
+    points: 350,
+    status: 'unsolved',
+    solvedCount: 8,
+    description: '利用缓冲区溢出漏洞，获取shell权限。',
+    hints: [
+      { content: '检查栈保护', cost: 30 },
+      { content: '构造ROP链', cost: 60 }
+    ],
+    attachments: [
+      { id: 6, name: 'pwn_challenge', url: '#' }
+    ],
+    tags: ['PWN', '缓冲区溢出']
+  }
+])
+
+// 计算属性
+const filteredChallenges = computed(() => {
+  if (statusFilter.value === 'all') {
+    return challenges.value
+  }
+  return challenges.value.filter(challenge => challenge.status === statusFilter.value)
+})
 
 // 获取比赛详情 - 暂时注释掉，使用写死的数据
 // const fetchContestDetail = async () => {
@@ -306,7 +570,104 @@ const handleRegister = async () => {
 
 // 进入比赛
 const enterContest = () => {
-  Message.info('比赛功能开发中...')
+  router.push(`/contest/contest/${contest.value.id}`)
+}
+
+// 题目相关方法
+const openChallenge = (challenge) => {
+  selectedChallenge.value = challenge
+  challengeDetailVisible.value = true
+}
+
+const downloadAttachment = (attachment) => {
+  Message.info(`下载附件: ${attachment.name}`)
+}
+
+const submitFlag = async () => {
+  if (!flagInput.value.trim()) {
+    Message.warning('请输入flag')
+    return
+  }
+  
+  try {
+    submitting.value = true
+    
+    // 模拟提交延迟
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 检查flag是否正确（这里简化处理）
+    const isCorrect = flagInput.value.includes('flag{') && flagInput.value.includes('}')
+    
+    if (isCorrect) {
+      Message.success('恭喜！Flag正确！')
+      
+      // 更新题目状态
+      selectedChallenge.value.status = 'solved'
+      
+      // 更新解题人数
+      selectedChallenge.value.solvedCount++
+      
+      // 清空输入
+      flagInput.value = ''
+      
+      // 关闭弹窗
+      challengeDetailVisible.value = false
+      
+    } else {
+      Message.error('Flag错误，请重试')
+      
+      // 标记为尝试过
+      if (selectedChallenge.value.status === 'unsolved') {
+        selectedChallenge.value.status = 'attempted'
+      }
+    }
+    
+  } catch (error) {
+    Message.error('提交失败，请重试')
+  } finally {
+    submitting.value = false
+  }
+}
+
+// 题目状态相关方法
+const getChallengeStatusColor = (status) => {
+  const colorMap = {
+    unsolved: 'default',
+    attempted: 'orange',
+    solved: 'green'
+  }
+  return colorMap[status] || 'default'
+}
+
+const getChallengeStatusText = (status) => {
+  const textMap = {
+    unsolved: '未解决',
+    attempted: '尝试中',
+    solved: '已解决'
+  }
+  return textMap[status] || '未知'
+}
+
+const getCategoryColor = (category) => {
+  const colorMap = {
+    web: 'blue',
+    crypto: 'green',
+    reverse: 'orange',
+    pwn: 'red',
+    misc: 'purple'
+  }
+  return colorMap[category] || 'default'
+}
+
+const getCategoryName = (category) => {
+  const nameMap = {
+    web: 'Web安全',
+    crypto: '密码学',
+    reverse: '逆向工程',
+    pwn: 'PWN漏洞',
+    misc: '杂项'
+  }
+  return nameMap[category] || '未知'
 }
 
 // 查看结果
@@ -512,6 +873,218 @@ const viewRanking = () => {
   color: var(--color-text-3);
 }
 
+/* 题目列表样式 */
+.contest-challenges {
+  background: var(--color-bg-1);
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.challenges-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.challenges-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.challenges-filter {
+  display: flex;
+  gap: 12px;
+}
+
+.filter-option {
+  padding: 8px 16px;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: var(--color-bg-2);
+  color: var(--color-text-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.filter-option:hover {
+  border-color: var(--color-primary-6);
+  background: var(--color-primary-light-1);
+}
+
+.filter-option.active {
+  border-color: var(--color-primary-6);
+  background: var(--color-primary-6);
+  color: white;
+}
+
+.challenges-grid {
+  margin-bottom: 24px;
+}
+
+.challenge-card {
+  height: 100%;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.challenge-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.challenge-cover {
+  height: 120px;
+  background: linear-gradient(135deg, var(--color-primary-light-1), var(--color-primary-6));
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.challenge-status {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+}
+
+.challenge-points {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.challenge-content {
+  padding: 16px;
+}
+
+.challenge-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.challenge-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  line-height: 1.4;
+  flex: 1;
+}
+
+.challenge-meta {
+  margin-bottom: 8px;
+}
+
+.challenge-solved {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+.challenge-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.challenge-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  height: auto;
+  line-height: 1.2;
+}
+
+/* 题目详情弹窗样式 */
+.challenge-detail-modal {
+  padding: 20px 0;
+}
+
+.detail-content h4 {
+  margin: 20px 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.detail-content h4:first-child {
+  margin-top: 0;
+}
+
+.description {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-2);
+  margin-bottom: 20px;
+}
+
+.hints {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.hint-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--color-fill-2);
+  border-radius: 6px;
+}
+
+.hint-number {
+  font-weight: 500;
+  color: var(--color-text-1);
+}
+
+.hint-content {
+  color: var(--color-text-2);
+  font-size: 13px;
+}
+
+.attachments {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.submission-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 20px;
+}
+
+.submission-form {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.submission-form .arco-input {
+  flex: 1;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .contest-detail-container {
@@ -543,6 +1116,16 @@ const viewRanking = () => {
   
   .contest-actions {
     justify-content: center;
+  }
+  
+  .challenges-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  
+  .challenges-filter {
+    flex-wrap: wrap;
   }
   
   .prizes-content {
