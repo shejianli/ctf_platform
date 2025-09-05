@@ -2,8 +2,8 @@
   <div class="contest-container">
     <div class="header">
       <div class="header-left">
-        <h1>赛事中心</h1>
-        <p>参与精彩的CTF比赛，与全球顶尖选手同台竞技</p>
+      <h1>赛事中心</h1>
+      <p>参与精彩的CTF比赛，与全球顶尖选手同台竞技</p>
       </div>
       <div class="header-right">
         <a-button type="outline" @click="refreshContests" :loading="loading">

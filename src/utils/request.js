@@ -1,19 +1,32 @@
 import axios from 'axios'
 import { Message } from '@arco-design/web-vue'
+import { getToken } from '@/utils/auth'
 
 const service = axios.create({
   baseURL: 'http://192.168.31.228:8888'
 })
 
+// 请求拦截器 - 自动添加token
+service.interceptors.request.use(
+  config => {
+    const token = getToken()
+    if (token) {
+      config.headers['x-token'] = token
+      console.log('请求头已添加token:', token.substring(0, 20) + '...') // 调试日志
+    } else {
+      console.log('未找到token，跳过添加') // 调试日志
+    }
+    return config
+  },
+  error => {
+    console.error('请求拦截器错误:', error)
+    return Promise.reject(error)
+  }
+)
+
 service.interceptors.response.use(
   response => {
-    const res = response.data
-
-    if (response.status >= 400) {
-      Message.error(response.data.message || '请求失败')
-      return Promise.reject(new Error(res.message || 'Error'))
-    }
-
+    // 直接返回响应，让业务层处理业务状态码
     return response
   },
   error => {

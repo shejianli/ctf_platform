@@ -144,6 +144,23 @@
 
       <!-- 右侧解题动态 -->
       <div class="solving-dynamics">
+        <!-- 运行中的靶机 -->
+        <div v-if="currentTarget" class="running-target-card" @click="openTargetChallenge">
+          <div class="target-card-header">
+            <a-tag color="green" size="small">
+              <icon-trophy />
+              靶机运行中
+            </a-tag>
+            <span class="target-time">{{ formatTime(remainingSec) }}</span>
+          </div>
+          <div class="target-card-content">
+            <div class="target-title">{{ currentTarget.question?.name || '未知题目' }}</div>
+            <div class="target-url" v-if="targetUrls.length > 0">
+              {{ targetUrls[0] }}
+            </div>
+          </div>
+        </div>
+
         <div class="dynamics-header">
           <h3>🔥 解题动态</h3>
           <a-button type="text" size="small" @click="refreshDynamics">
@@ -237,29 +254,37 @@
             本题为静态 Flag，请下载附件或阅读描述完成解题。
           </a-alert>
 
-          <!-- 动态 Flag 靶机控制 -->
-          <div v-if="selectedChallenge.flagType === 1" class="dynamic-flag-control">
-            <div v-if="!isTargetStarted" class="start-target">
-              <a-button type="primary" @click="startTarget" :loading="startingTarget">
-                启动靶机
-              </a-button>
-              <p class="tip-text">点击启动靶机后开始计时，靶机将在30分钟后自动关闭</p>
+          <!-- 已启动的靶机信息 -->
+          <div v-if="isTargetStarted" class="active-target-info">
+            <div class="active-target-header">
+              <a-tag color="green" size="small">
+                <icon-trophy />
+                靶机运行中
+              </a-tag>
+              <span class="target-title">{{ selectedChallenge.name }}</span>
             </div>
-
-            <div v-else class="target-running">
+            
+            <div class="active-target-details">
               <div class="timer-info">
                 <span>剩余时间：</span>
                 <span class="time">{{ formatTime(remainingSec) }}</span>
               </div>
-
-              <div class="progress-wrapper">
-                <a-progress
-                  :percent="progressPercent"
-                  :show-text="false"
-                  :stroke-color="progressColor"
-                  size="small"
-                />
-                <span class="progress-text">{{ Math.ceil(remainingSec / 60) }}分钟</span>
+              
+              <div v-if="targetUrls.length > 0" class="target-url-info">
+                <div class="url-label">靶机访问地址：</div>
+                <div
+                  v-for="(url, index) in targetUrls"
+                  :key="index"
+                  class="url-item"
+                >
+                  <a
+                    :href="url"
+                    target="_blank"
+                    class="target-link"
+                  >
+                    {{ url }}
+                  </a>
+                </div>
               </div>
 
               <div class="target-actions">
@@ -275,6 +300,32 @@
                 <a-button size="small" type="text" @click="stopTarget">停止靶机</a-button>
               </div>
             </div>
+          </div>
+
+          <!-- 动态 Flag 靶机控制 -->
+          <div v-if="selectedChallenge.flagType === 1" class="dynamic-flag-control">
+            <div v-if="!isTargetStarted" class="start-target">
+              <a-button type="primary" @click="startTarget" :loading="startingTarget">
+                启动靶机
+              </a-button>
+              <p class="tip-text">点击启动靶机后开始计时，靶机将在30分钟后自动关闭</p>
+            </div>
+
+          </div>
+
+          <!-- 启动中状态 - 显示进度条 -->
+          <div v-if="startingTarget" class="target-starting">
+            <div class="timer-info">
+              <span>剩余时间：</span>
+              <span class="time">{{ formatTime(remainingSec) }}</span>
+            </div>
+
+
+            <div class="starting-text">
+              <a-spin size="small" />
+              <span>正在启动靶机...</span>
+            </div>
+          </div>
           </div>
 
           <!-- 附件列表 -->
@@ -294,15 +345,16 @@
             <a-button type="primary" class="ml8" @click="submitFlag">提交</a-button>
           </div>
         </div>
-      </div>
     </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { Message } from '@arco-design/web-vue'
 import { IconSearch, IconTrophy, IconUser, IconRefresh, IconClockCircle } from '@arco-design/web-vue/es/icon'
 import { getDifficultyLevels, getQuestionClasses, getQuestions, getTopicSuccessfully } from '@/api/practice'
+import { startTarget as startTargetAPI, getUserBootRecordList } from '@/api/question'
 
 // 筛选条件
 const filters = reactive({
@@ -422,9 +474,11 @@ const isChallengeModalVisible = ref(false)
 const selectedChallenge = ref(null)
 const flagInput = ref('')
 const remainingSec = ref(0)
+const targetUrls = ref([])
 const isTargetStarted = ref(false)
 const startingTarget = ref(false)
 const hasExtended = ref(false)
+const currentTarget = ref(null) // 当前运行的靶机信息
 let countdownTimer = null
 
 // 解题动态数据
@@ -468,6 +522,61 @@ const refreshDynamics = () => {
   fetchSolvingDynamics()
 }
 
+// 获取用户靶机状态
+const getTargetStatus = async () => {
+  try {
+    const response = await getUserBootRecordList()
+    if (response.data.code === 0) {
+      const records = response.data.data.list || []
+      // 查找正在运行的靶机 (targetStatus === 1 表示运行中)
+      const runningTarget = records.find(record => record.targetStatus === 1)
+      if (runningTarget) {
+        currentTarget.value = runningTarget
+        isTargetStarted.value = true
+        // 计算剩余时间
+        const startTime = new Date(runningTarget.startupTime).getTime()
+        const now = Date.now()
+        const elapsed = Math.floor((now - startTime) / 1000)
+        const totalTime = 1800 // 30分钟
+        remainingSec.value = Math.max(0, totalTime - elapsed)
+        
+        
+        // 如果剩余时间大于0，启动计时器
+        if (remainingSec.value > 0) {
+          startTimer()
+        } else {
+          // 如果时间已用完，停止靶机
+          console.log('靶机时间已用完，停止靶机')
+          currentTarget.value = null
+          isTargetStarted.value = false
+        }
+        
+        // 设置靶机地址 (这里需要根据实际API调整)
+        // 暂时设置为空，等后端提供expose字段
+        targetUrls.value = []
+      } else {
+        currentTarget.value = null
+        isTargetStarted.value = false
+        remainingSec.value = 0
+        targetUrls.value = []
+      }
+    }
+  } catch (error) {
+    console.error('获取靶机状态失败:', error)
+  }
+}
+
+// 点击靶机卡片打开题目详情
+const openTargetChallenge = () => {
+  if (currentTarget.value && currentTarget.value.titleId) {
+    // 根据靶机信息找到对应的题目
+    const challenge = challenges.value.find(c => c.ID === currentTarget.value.titleId)
+    if (challenge) {
+      openChallenge(challenge)
+    }
+  }
+}
+
 
 
 // 格式化时间
@@ -492,22 +601,29 @@ const openChallenge = (challenge) => {
   flagInput.value = ''
   isChallengeModalVisible.value = true
 
-  stopTimer()
-  isTargetStarted.value = false
-  startingTarget.value = false
-  hasExtended.value = false
-
-  if (challenge.flagType === 1) {
-    // 动态Flag，重置状态
-    remainingSec.value = 0
-  } else {
+  // 如果打开的是当前运行的靶机，不要重置状态
+  const isCurrentTarget = currentTarget.value && currentTarget.value.titleId === challenge.ID
+  
+  if (!isCurrentTarget) {
+    // 只有打开其他题目时才重置状态
+    stopTimer()
+    isTargetStarted.value = false
+    startingTarget.value = false
+    hasExtended.value = false
     remainingSec.value = 0
   }
 }
 
 const onCloseChallenge = () => {
   isChallengeModalVisible.value = false
-  stopTimer()
+  
+  // 如果关闭的是当前运行的靶机，不要停止计时器
+  const isCurrentTarget = currentTarget.value && selectedChallenge.value && 
+    currentTarget.value.titleId === selectedChallenge.value.ID
+  
+  if (!isCurrentTarget) {
+    stopTimer()
+  }
 }
 
 const startTimer = () => {
@@ -528,31 +644,56 @@ const stopTimer = () => {
   }
 }
 
-// 进度条相关计算属性
-const progressPercent = computed(() => {
-  if (remainingSec.value <= 0) return 0
-  return Math.round(((1800 - remainingSec.value) / 1800) * 100)
-})
-
-const progressColor = computed(() => {
-  const percent = progressPercent.value
-  if (percent < 50) return '#52c41a'
-  if (percent < 80) return '#fa8c16'
-  return '#f5222d'
-})
 
 // 靶机控制函数
 const startTarget = async () => {
   startingTarget.value = true
-  try {
-    // TODO: 调用后端API启动靶机
-    await new Promise(resolve => setTimeout(resolve, 1000)) // 模拟API调用
 
-    isTargetStarted.value = true
-    remainingSec.value = 1800 // 30分钟
-    startTimer()
+  // 立即开始计时和进度条
+  remainingSec.value = 1800 // 30分钟
+  startTimer()
+
+  try {
+    // 检查选中的题目
+    if (!selectedChallenge.value) {
+      Message.error('请先选择题目')
+      return
+    }
+
+    console.log('选中的题目信息:', selectedChallenge.value) // 调试日志
+
+    // 调用后端API启动靶机
+    const requestData = {
+      questionId: selectedChallenge.value.ID
+    }
+    console.log('启动靶机请求参数:', requestData) // 调试日志
+
+    const response = await startTargetAPI(requestData)
+
+    console.log('启动靶机响应:', response.data) // 调试日志
+
+    if (response.data.code === 0) {
+      isTargetStarted.value = true
+
+      // 保存靶机访问地址
+      if (response.data.data && response.data.data.expose && response.data.data.expose.length > 0) {
+        targetUrls.value = response.data.data.expose
+        console.log('靶机访问地址列表:', targetUrls.value)
+      }
+
+      Message.success('靶机启动成功！')
+    } else {
+      Message.error(response.data.msg || '启动靶机失败')
+      // 启动失败时停止计时
+      stopTimer()
+      remainingSec.value = 0
+    }
   } catch (error) {
     console.error('启动靶机失败:', error)
+    Message.error('启动靶机失败，请重试')
+    // 启动失败时停止计时
+    stopTimer()
+    remainingSec.value = 0
   } finally {
     startingTarget.value = false
   }
@@ -590,6 +731,7 @@ const resetTimer = () => {
     startTimer()
   }
 }
+
 
 const formatTime = (total) => {
   const hours = Math.floor(total / 3600)
@@ -697,7 +839,8 @@ onMounted(async () => {
     fetchDifficultyLevels(),
     fetchQuestionClasses(),
     fetchQuestions(),
-    fetchSolvingDynamics()
+    fetchSolvingDynamics(),
+    getTargetStatus()
   ])
 })
 </script>
@@ -1195,6 +1338,66 @@ onMounted(async () => {
   border-radius: 8px;
 }
 
+.target-starting {
+  padding: 16px;
+  background: var(--color-fill-1);
+  border-radius: 8px;
+  border: 1px solid var(--color-border-2);
+}
+
+.starting-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--color-text-2);
+  font-size: 13px;
+}
+
+.target-url-info {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--color-bg-1);
+  border-radius: 6px;
+  border: 1px solid var(--color-border-2);
+}
+
+.url-label {
+  font-size: 14px;
+  color: var(--color-text-2);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.url-item {
+  margin-bottom: 8px;
+}
+
+.url-item:last-child {
+  margin-bottom: 0;
+}
+
+.target-link {
+  display: block;
+  padding: 8px 12px;
+  background: var(--color-fill-2);
+  border: 1px solid var(--color-border-2);
+  border-radius: 6px;
+  color: var(--color-link-6);
+  text-decoration: none;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  word-break: break-all;
+  transition: all 0.2s ease;
+}
+
+.target-link:hover {
+  background: var(--color-fill-3);
+  border-color: var(--color-link-6);
+  color: var(--color-link-5);
+  text-decoration: none;
+}
+
 .timer-info {
   display: flex;
   align-items: center;
@@ -1208,26 +1411,95 @@ onMounted(async () => {
   color: #0958d9;
 }
 
-.progress-wrapper {
+
+.active-target-info {
+  margin: 16px 0;
+  padding: 16px;
+  background: linear-gradient(135deg, #f6ffed 0%, #f0f9ff 100%);
+  border: 1px solid #52c41a;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.1);
+}
+
+.active-target-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #d9f7be;
 }
 
-.progress-wrapper :deep(.arco-progress) {
-  flex: 1;
+.target-title {
+  font-weight: 600;
+  color: var(--color-text-1);
+  font-size: 14px;
 }
 
-.progress-text {
-  font-size: 12px;
-  color: var(--color-text-3);
-  min-width: 50px;
+.active-target-details {
+  padding-left: 4px;
 }
 
 .target-actions {
   display: flex;
   gap: 8px;
   justify-content: center;
+  margin-top: 20px;
+}
+
+/* 运行中靶机卡片样式 */
+.running-target-card {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f6ffed 0%, #f0f9ff 100%);
+  border: 1px solid #52c41a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(82, 196, 26, 0.1);
+}
+
+.running-target-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.2);
+  border-color: #389e0d;
+}
+
+.target-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.target-time {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-weight: 600;
+  color: #0958d9;
+  font-size: 13px;
+}
+
+.target-card-content {
+  padding-left: 4px;
+}
+
+.target-card-content .target-title {
+  font-weight: 600;
+  color: var(--color-text-1);
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.target-url {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 12px;
+  color: var(--color-text-3);
+  background: var(--color-fill-2);
+  padding: 4px 8px;
+  border-radius: 4px;
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
