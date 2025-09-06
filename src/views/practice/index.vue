@@ -151,13 +151,9 @@
               <icon-trophy />
               靶机运行中
             </a-tag>
-            <span class="target-time">{{ formatTime(remainingSec) }}</span>
           </div>
           <div class="target-card-content">
             <div class="target-title">{{ currentTarget.question?.name || '未知题目' }}</div>
-            <div class="target-url" v-if="targetUrls.length > 0">
-              {{ targetUrls[0] }}
-            </div>
           </div>
         </div>
 
@@ -485,6 +481,8 @@ let countdownTimer = null
 const solvingDynamics = ref([])
 const dynamicsLoading = ref(false)
 
+
+
 // 获取解题动态
 const fetchSolvingDynamics = async () => {
   try {
@@ -531,8 +529,9 @@ const getTargetStatus = async () => {
       // 查找正在运行的靶机 (targetStatus === 1 表示运行中)
       const runningTarget = records.find(record => record.targetStatus === 1)
       if (runningTarget) {
+        // 设置靶机信息（右侧卡片显示用）
         currentTarget.value = runningTarget
-        isTargetStarted.value = true
+        
         // 计算剩余时间
         const startTime = new Date(runningTarget.startupTime).getTime()
         const now = Date.now()
@@ -540,15 +539,14 @@ const getTargetStatus = async () => {
         const totalTime = 1800 // 30分钟
         remainingSec.value = Math.max(0, totalTime - elapsed)
 
-
-        // 如果剩余时间大于0，启动计时器
-        if (remainingSec.value > 0) {
+        // 判断弹窗中是否应该显示靶机信息（当前题目且未超时）
+        const isCurrentQuestion = selectedChallenge.value && runningTarget.titleId === selectedChallenge.value.ID
+        const isNotExpired = remainingSec.value > 0
+        
+        if (isCurrentQuestion && isNotExpired) {
+          // 是当前题目且未超时，弹窗中显示靶机信息
+          isTargetStarted.value = true
           startTimer()
-        } else {
-          // 如果时间已用完，停止靶机
-          console.log('靶机时间已用完，停止靶机')
-          currentTarget.value = null
-          isTargetStarted.value = false
         }
 
         // 设置靶机地址
@@ -603,18 +601,19 @@ const formatTimeAgo = (timestamp) => {
 const openChallenge = (challenge) => {
   selectedChallenge.value = challenge
   flagInput.value = ''
+  
+  // 先重置靶机状态，避免显示之前的靶机信息
+  isTargetStarted.value = false
+  stopTimer()
+  remainingSec.value = 0
+  targetUrls.value = []
+  
+  // 先显示弹窗，提升用户体验
   isChallengeModalVisible.value = true
-
-  // 如果打开的是当前运行的靶机，不要重置状态
-  const isCurrentTarget = currentTarget.value && currentTarget.value.titleId === challenge.ID
-
-  if (!isCurrentTarget) {
-    // 只有打开其他题目时才重置状态
-    stopTimer()
-    isTargetStarted.value = false
-    startingTarget.value = false
-    hasExtended.value = false
-    remainingSec.value = 0
+  
+  // 只有动态Flag才需要查询靶机状态
+  if (challenge.flagType === 1) {
+    getTargetStatus()
   }
 }
 
@@ -626,6 +625,8 @@ const onCloseChallenge = () => {
     currentTarget.value.titleId === selectedChallenge.value.ID
 
   if (!isCurrentTarget) {
+    // 不是当前靶机，重置弹窗中的靶机状态
+    isTargetStarted.value = false
     stopTimer()
   }
 }
@@ -664,17 +665,12 @@ const startTarget = async () => {
       return
     }
 
-    console.log('选中的题目信息:', selectedChallenge.value) // 调试日志
-
     // 调用后端API启动靶机
     const requestData = {
       questionId: selectedChallenge.value.ID
     }
-    console.log('启动靶机请求参数:', requestData) // 调试日志
 
     const response = await startTargetAPI(requestData)
-
-    console.log('启动靶机响应:', response.data) // 调试日志
 
     if (response.data.code === 0) {
       isTargetStarted.value = true
@@ -683,11 +679,9 @@ const startTarget = async () => {
       if (response.data.data && response.data.data.href) {
         // href字段包含多个地址，用逗号分隔
         targetUrls.value = response.data.data.href.split(',').map(url => url.trim())
-        console.log('靶机访问地址列表:', targetUrls.value)
       } else if (response.data.data && response.data.data.expose && response.data.data.expose.length > 0) {
         // 兼容旧的expose字段
         targetUrls.value = response.data.data.expose
-        console.log('靶机访问地址列表:', targetUrls.value)
       }
 
       Message.success('靶机启动成功！')
@@ -732,11 +726,7 @@ const stopTarget = async () => {
       // questionId: currentTarget.value.titleId
     }
 
-    console.log('停止靶机请求参数:', requestData)
-
     const response = await stopTargetAPI(requestData)
-
-    console.log('停止靶机响应:', response.data)
 
     if (response.data.code === 0) {
       // 停止成功，清除状态
@@ -782,7 +772,6 @@ const downloadAttachment = (attachment) => {
 }
 
 const submitFlag = () => {
-  console.log('提交 Flag:', flagInput.value)
   // TODO: 接口提交校验
 }
 

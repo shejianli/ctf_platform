@@ -7,8 +7,8 @@
           <icon-left />
           返回比赛详情
         </a-button>
-        <h1>第三届"陇剑杯"网络安全大赛</h1>
-        <p>挑战自我，突破极限！完成题目获得积分和排名</p>
+        <h1>{{ contestInfo.name || '比赛进行中' }}</h1>
+        <p>{{ contestInfo.description || '挑战自我，突破极限！完成题目获得积分和排名' }}</p>
       </div>
 
       <div class="header-right">
@@ -344,17 +344,21 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { Message } from '@arco-design/web-vue'
 import { 
   IconLeft, IconTrophy, IconBarChart, IconUser, 
   IconStar, IconRefresh, IconCheckCircle, 
   IconClockCircle, IconDownload
 } from '@arco-design/web-vue/es/icon'
+import { findEventCPublic, getUserEventQList } from '@/api/contest'
 
 const router = useRouter()
+const route = useRoute()
 
 // 响应式数据
+const contestInfo = ref({}) // 比赛基本信息
+const loading = ref(false) // 加载状态
 const activeCategory = ref('all')
 const activeStatus = ref('all')
 const selectedChallenge = ref(null)
@@ -380,118 +384,7 @@ const pagination = ref({
 })
 
 // 题目数据
-const challenges = ref([
-  {
-    id: 1,
-    name: 'Web基础注入',
-    category: 'web',
-    difficulty: '简单',
-    points: 100,
-    status: 'unsolved',
-    solvedCount: 45,
-    attemptCount: 12,
-    description: '这是一个基础的SQL注入题目，你需要找到隐藏在网页中的flag。',
-    hints: [
-      { content: '注意URL参数', cost: 10 },
-      { content: '尝试单引号', cost: 20 }
-    ],
-    attachments: [
-      { id: 1, name: 'web_injection.zip', url: '#' }
-    ],
-    tags: ['Web安全', 'SQL注入']
-  },
-  {
-    id: 2,
-    name: '文件上传绕过',
-    category: 'web',
-    difficulty: '中等',
-    points: 200,
-    status: 'solved',
-    solvedCount: 23,
-    attemptCount: 8,
-    description: '绕过文件上传限制，上传webshell获取flag。',
-    hints: [
-      { content: '检查文件类型验证', cost: 10 },
-      { content: '尝试双写绕过', cost: 20 }
-    ],
-    attachments: [
-      { id: 2, name: 'file_upload.zip', url: '#' }
-    ],
-    tags: ['Web安全', '文件上传']
-  },
-  {
-    id: 3,
-    name: 'XSS反射型',
-    category: 'web',
-    difficulty: '简单',
-    points: 150,
-    status: 'attempted',
-    solvedCount: 67,
-    attemptCount: 15,
-    description: '构造XSS payload，在页面中执行JavaScript代码。',
-    hints: [
-      { content: '注意输入过滤', cost: 15 }
-    ],
-    attachments: [],
-    tags: ['Web安全', 'XSS']
-  },
-  {
-    id: 4,
-    name: 'RSA加密',
-    category: 'crypto',
-    difficulty: '困难',
-    points: 300,
-    status: 'unsolved',
-    solvedCount: 12,
-    attemptCount: 5,
-    description: '破解RSA加密，找到明文flag。',
-    hints: [
-      { content: '检查公钥信息', cost: 25 },
-      { content: '尝试共模攻击', cost: 50 }
-    ],
-    attachments: [
-      { id: 4, name: 'rsa_challenge.zip', url: '#' }
-    ],
-    tags: ['密码学', 'RSA']
-  },
-  {
-    id: 5,
-    name: '逆向分析',
-    category: 'reverse',
-    difficulty: '中等',
-    points: 250,
-    status: 'unsolved',
-    solvedCount: 18,
-    attemptCount: 7,
-    description: '分析二进制文件，找到隐藏的flag。',
-    hints: [
-      { content: '使用IDA Pro分析', cost: 20 }
-    ],
-    attachments: [
-      { id: 5, name: 'reverse_binary.exe', url: '#' }
-    ],
-    tags: ['逆向工程', '二进制分析']
-  },
-  {
-    id: 6,
-    name: '缓冲区溢出',
-    category: 'pwn',
-    difficulty: '困难',
-    points: 350,
-    status: 'unsolved',
-    solvedCount: 8,
-    attemptCount: 3,
-    description: '利用缓冲区溢出漏洞，获取shell权限。',
-    hints: [
-      { content: '检查栈保护', cost: 30 },
-      { content: '构造ROP链', cost: 60 }
-    ],
-    attachments: [
-      { id: 6, name: 'pwn_challenge', url: '#' }
-    ],
-    tags: ['PWN', '缓冲区溢出']
-  }
-])
+const challenges = ref([])
 
 // 解题动态数据
 const solvingDynamics = ref([
@@ -578,25 +471,48 @@ const totalChallenges = computed(() => challenges.value.length)
 
 // 倒计时计算
 const calculateTimeRemaining = () => {
-  // 这里设置比赛结束时间，可以根据实际情况调整
-  const endTime = new Date('2024-12-31T23:59:59').getTime()
-  const now = new Date().getTime()
-  const timeLeft = endTime - now
-  
-  if (timeLeft <= 0) {
-    timeRemaining.value = '比赛已结束'
-    return
-  }
-  
-  const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24))
-  const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-  const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60))
-  const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000)
-  
-  if (days > 0) {
-    timeRemaining.value = `${days}天 ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  // 使用比赛数据中的结束时间
+  if (contestInfo.value.competitionDeadline) {
+    const endTime = new Date(contestInfo.value.competitionDeadline).getTime()
+    const now = new Date().getTime()
+    const timeLeft = endTime - now
+    
+    if (timeLeft <= 0) {
+      timeRemaining.value = '比赛已结束'
+      return
+    }
+    
+    const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000)
+    
+    if (days > 0) {
+      timeRemaining.value = `${days}天 ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    } else {
+      timeRemaining.value = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    }
   } else {
-    timeRemaining.value = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    // 如果没有比赛数据，使用默认时间
+    const endTime = new Date('2024-12-31T23:59:59').getTime()
+    const now = new Date().getTime()
+    const timeLeft = endTime - now
+    
+    if (timeLeft <= 0) {
+      timeRemaining.value = '比赛已结束'
+      return
+    }
+    
+    const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000)
+    
+    if (days > 0) {
+      timeRemaining.value = `${days}天 ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    } else {
+      timeRemaining.value = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+    }
   }
 }
 
@@ -688,7 +604,7 @@ const submitFlag = async () => {
       // 更新用户分数
       userScore.value += selectedChallenge.value.points
       
-      // 更新解题人数
+      // 更新solvedCount
       selectedChallenge.value.solvedCount++
       
       // 清空输入
@@ -731,11 +647,172 @@ const onPageSizeChange = (pageSize) => {
   pagination.value.current = 1
 }
 
+// 获取比赛数据
+const fetchContestData = async () => {
+  try {
+    loading.value = true
+    const contestId = route.params.id
+    console.log('获取比赛数据，ID:', contestId)
+    
+    const response = await findEventCPublic(contestId)
+    console.log('比赛数据响应:', response.data)
+    
+    if (response.data.code === 0) {
+      contestInfo.value = response.data.data
+      // 根据比赛数据更新倒计时
+      if (contestInfo.value.competitionDeadline) {
+        updateTimer(contestInfo.value.competitionDeadline)
+      }
+      // 获取比赛题目列表
+      await fetchContestQuestions(contestId)
+    } else {
+      Message.error(response.data.msg || '获取比赛数据失败')
+    }
+  } catch (error) {
+    console.error('获取比赛数据失败:', error)
+    Message.error('获取比赛数据失败，请重试')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 获取比赛题目列表
+const fetchContestQuestions = async (eventId) => {
+  try {
+    console.log('获取比赛题目列表，eventId:', eventId)
+    
+    const response = await getUserEventQList(eventId)
+    console.log('题目列表响应:', response.data)
+    
+    if (response.data.code === 0) {
+      // 转换后端数据格式为前端需要的格式
+      challenges.value = response.data.data.map(item => ({
+        id: item.questionId,
+        name: item.question?.name || '未知题目',
+        category: getCategoryFromQuestion(item.question),
+        points: item.score,
+        status: 'unsolved', // 默认状态，后续可以根据用户提交记录更新
+        solvedCount: item.question?.challengecompleted || 0, // 使用后端返回的solvedCount
+        attemptCount: 0, // 默认值
+        description: item.question?.description || '暂无描述',
+        hints: [], // 默认空数组
+        attachments: getAttachmentsFromQuestion(item.question), // 处理附件
+        tags: getTagsFromQuestion(item.question)
+      }))
+      
+      // 更新分页总数
+      pagination.value.total = challenges.value.length
+    } else {
+      console.warn('获取题目列表失败:', response.data.msg)
+      challenges.value = []
+    }
+  } catch (error) {
+    console.error('获取题目列表失败:', error)
+    challenges.value = []
+  }
+}
+
+// 根据题目信息获取分类
+const getCategoryFromQuestion = (question) => {
+  if (!question) return 'misc'
+  
+  // 优先使用后端返回的分类字段
+  if (question.questionclassification) {
+    const classificationMap = {
+      1: 'web',      // Web安全
+      2: 'crypto',   // 密码学
+      3: 'crypto',   // 密码学 (数独、乐谱等)
+      4: 'reverse',  // 逆向工程
+      5: 'pwn',      // PWN
+      6: 'misc'      // 杂项
+    }
+    return classificationMap[question.questionclassification] || 'misc'
+  }
+  
+  // 如果没有分类字段，根据题目名称判断
+  const name = question.name?.toLowerCase() || ''
+  if (name.includes('web') || name.includes('注入') || name.includes('xss')) return 'web'
+  if (name.includes('crypto') || name.includes('rsa') || name.includes('加密') || name.includes('数独') || name.includes('乐谱')) return 'crypto'
+  if (name.includes('reverse') || name.includes('逆向')) return 'reverse'
+  if (name.includes('pwn') || name.includes('溢出')) return 'pwn'
+  return 'misc'
+}
+
+// 根据题目信息获取标签
+const getTagsFromQuestion = (question) => {
+  if (!question) return []
+  
+  const tags = []
+  const name = question.name?.toLowerCase() || ''
+  
+  // 根据分类字段生成基础标签
+  if (question.questionclassification) {
+    const classificationTags = {
+      1: ['Web安全'],
+      2: ['密码学'],
+      3: ['密码学', '隐写术'],
+      4: ['逆向工程'],
+      5: ['PWN'],
+      6: ['杂项']
+    }
+    tags.push(...(classificationTags[question.questionclassification] || ['CTF']))
+  }
+  
+  // 根据题目名称添加具体标签
+  if (name.includes('web')) tags.push('Web安全')
+  if (name.includes('注入')) tags.push('SQL注入')
+  if (name.includes('xss')) tags.push('XSS')
+  if (name.includes('crypto')) tags.push('密码学')
+  if (name.includes('rsa')) tags.push('RSA')
+  if (name.includes('reverse')) tags.push('逆向工程')
+  if (name.includes('pwn')) tags.push('PWN')
+  if (name.includes('溢出')) tags.push('缓冲区溢出')
+  if (name.includes('数独')) tags.push('数独')
+  if (name.includes('乐谱')) tags.push('乐谱')
+  if (name.includes('隐写')) tags.push('隐写术')
+  
+  // 去重并返回
+  return [...new Set(tags)].length > 0 ? [...new Set(tags)] : ['CTF']
+}
+
+// 根据题目信息获取附件
+const getAttachmentsFromQuestion = (question) => {
+  if (!question || !question.attachment) return []
+  
+  // 从附件路径中提取文件名
+  const attachmentPath = question.attachment
+  const fileName = attachmentPath.split('/').pop() || 'attachment.zip'
+  
+  return [{
+    id: question.ID,
+    name: fileName,
+    url: attachmentPath // 这里可能需要拼接完整的URL
+  }]
+}
+
+// 更新倒计时
+const updateTimer = (endTime) => {
+  const end = new Date(endTime).getTime()
+  const now = new Date().getTime()
+  const timeLeft = end - now
+  
+  if (timeLeft > 0) {
+    const hours = Math.floor(timeLeft / (1000 * 60 * 60))
+    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000)
+    
+    timeRemaining.value = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  } else {
+    timeRemaining.value = '00:00:00'
+  }
+}
+
 // 定时器
 let timer = null
 
 // 组件挂载时启动定时器
 onMounted(() => {
+  fetchContestData() // 获取比赛数据
   calculateTimeRemaining() // 立即计算一次
   timer = setInterval(calculateTimeRemaining, 1000) // 每秒更新一次
 })

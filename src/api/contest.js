@@ -59,3 +59,12 @@ export function checkUserRegistration(eventId) {
     params: { eventId }
   })
 }
+
+// 普通用户获取比赛赛题列表
+export function getUserEventQList(eventId) {
+  return request({
+    url: '/Eq/getUserEventQList',
+    method: 'get',
+    params: { eventId }
+  })
+}
