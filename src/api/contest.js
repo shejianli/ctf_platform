@@ -17,6 +17,15 @@ export function getEventCDetail(id) {
   })
 }
 
+// 根据ID获取赛事详情 (新接口)
+export function findEventCPublic(id) {
+  return request({
+    url: '/EC/findEventCPublic',
+    method: 'get',
+    params: { ID: id }
+  })
+}
+
 // 报名参加赛事
 export function registerEvent(id) {
   return request({
@@ -30,5 +39,23 @@ export function cancelRegistration(id) {
   return request({
     url: `/EC/cancelRegistration/${id}`,
     method: 'post'
+  })
+}
+
+// 普通用户报名接口
+export function userRegisterEvent(data) {
+  return request({
+    url: '/ERr/userRegisterEvent',
+    method: 'post',
+    data
+  })
+}
+
+// 查询用户是否报名某个比赛
+export function checkUserRegistration(eventId) {
+  return request({
+    url: '/ERr/checkUserRegistration',
+    method: 'get',
+    params: { eventId }
   })
 }

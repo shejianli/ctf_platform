@@ -66,26 +66,6 @@
           </div>
         </a-tab-pane>
         
-        <a-tab-pane key="1" title="筹备中">
-          <div class="contest-list">
-            <a-spin :spinning="loading" tip="加载中...">
-              <div v-if="!loading && filteredStatusContests(1).length === 0" class="empty-state">
-                <div class="empty-icon">📋</div>
-                <div class="empty-text">暂无筹备中的赛事</div>
-                <div class="empty-subtext">敬请期待更多精彩赛事</div>
-              </div>
-              <div v-else class="contest-list-container">
-                <div 
-                  v-for="contest in filteredStatusContests(1)" 
-                  :key="contest.ID" 
-                  class="contest-list-item"
-                >
-                  <contest-card :contest="contest" :type="getContestType(contest)" />
-                </div>
-              </div>
-            </a-spin>
-          </div>
-        </a-tab-pane>
         
         <a-tab-pane key="2" title="报名中">
           <div class="contest-list">
@@ -150,26 +130,6 @@
           </div>
         </a-tab-pane>
         
-        <a-tab-pane key="5" title="已取消">
-          <div class="contest-list">
-            <a-spin :spinning="loading" tip="加载中...">
-              <div v-if="!loading && filteredStatusContests(5).length === 0" class="empty-state">
-                <div class="empty-icon">❌</div>
-                <div class="empty-text">暂无已取消的赛事</div>
-                <div class="empty-subtext">敬请期待更多精彩赛事</div>
-              </div>
-              <div v-else class="contest-list-container">
-                <div 
-                  v-for="contest in filteredStatusContests(5)" 
-                  :key="contest.ID" 
-                  class="contest-list-item"
-                >
-                  <contest-card :contest="contest" :type="getContestType(contest)" />
-                </div>
-              </div>
-            </a-spin>
-          </div>
-        </a-tab-pane>
       </a-tabs>
     </div>
   </div>
@@ -241,15 +201,11 @@ const refreshContests = () => {
 const getContestType = (contest) => {
   switch (contest.status) {
     case 1:
-      return 'preparing' // 筹备中
-    case 2:
       return 'registering' // 报名中
-    case 3:
+    case 2:
       return 'ongoing' // 进行中
-    case 4:
+    case 3:
       return 'finished' // 已结束
-    case 5:
-      return 'cancelled' // 已取消
     default:
       return 'unknown'
   }

@@ -58,21 +58,12 @@
         </a-button>
         
         <a-button 
-          v-else-if="type === 'finished' || type === 'cancelled'" 
+          v-else-if="type === 'finished'" 
           type="text" 
           size="default"
           @click.stop="viewResults"
         >
           查看结果
-        </a-button>
-        
-        <a-button 
-          v-else-if="type === 'preparing'"
-          type="text" 
-          size="default"
-          disabled
-        >
-          筹备中
         </a-button>
         
         <a-button type="primary" size="default" @click.stop="viewDetails">
@@ -96,17 +87,15 @@ const props = defineProps({
   type: {
     type: String,
     required: true,
-    validator: (value) => ['preparing', 'registering', 'ongoing', 'finished', 'cancelled', 'unknown'].includes(value)
+    validator: (value) => ['registering', 'ongoing', 'finished', 'unknown'].includes(value)
   }
 })
 
 const getStatusText = () => {
   const map = {
-    preparing: '筹备中',
     registering: '报名中',
     ongoing: '进行中',
     finished: '已结束',
-    cancelled: '已取消',
     unknown: '未知状态'
   }
   return map[props.type]
@@ -133,19 +122,19 @@ const formatRegistrationDeadline = () => {
 }
 
 const joinContest = () => {
-  console.log('参加比赛:', props.contest.id)
+  console.log('参加比赛:', props.contest.ID)
 }
 
 const registerContest = () => {
-  console.log('报名比赛:', props.contest.id)
+  console.log('报名比赛:', props.contest.ID)
 }
 
 const viewResults = () => {
-  console.log('查看结果:', props.contest.id)
+  console.log('查看结果:', props.contest.ID)
 }
 
 const viewDetails = () => {
-  router.push(`/contest/detail/${props.contest.id}`)
+  router.push(`/contest/detail/${props.contest.ID}`)
 }
 </script>
 
@@ -208,11 +197,9 @@ const viewDetails = () => {
   z-index: 2;
 }
 
-.contest-status-badge.preparing { background-color: #faad14; }
 .contest-status-badge.registering { background-color: #1890ff; }
 .contest-status-badge.ongoing { background-color: #52c41a; }
 .contest-status-badge.finished { background-color: #8c8c8c; }
-.contest-status-badge.cancelled { background-color: #ff4d4f; }
 .contest-status-badge.unknown { background-color: #d9d9d9; }
 
 .contest-content {
@@ -254,11 +241,9 @@ const viewDetails = () => {
   flex-shrink: 0;
 }
 
-.contest-status.preparing { background-color: #faad14; }
 .contest-status.registering { background-color: #1890ff; }
 .contest-status.ongoing { background-color: #52c41a; }
 .contest-status.finished { background-color: #8c8c8c; }
-.contest-status.cancelled { background-color: #ff4d4f; }
 .contest-status.unknown { background-color: #d9d9d9; }
 
 .contest-details {
