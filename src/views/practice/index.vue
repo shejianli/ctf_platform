@@ -263,13 +263,13 @@
               </a-tag>
               <span class="target-title">{{ selectedChallenge.name }}</span>
             </div>
-            
+
             <div class="active-target-details">
               <div class="timer-info">
                 <span>剩余时间：</span>
                 <span class="time">{{ formatTime(remainingSec) }}</span>
               </div>
-              
+
               <div v-if="targetUrls.length > 0" class="target-url-info">
                 <div class="url-label">靶机访问地址：</div>
                 <div
@@ -354,7 +354,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { Message } from '@arco-design/web-vue'
 import { IconSearch, IconTrophy, IconUser, IconRefresh, IconClockCircle } from '@arco-design/web-vue/es/icon'
 import { getDifficultyLevels, getQuestionClasses, getQuestions, getTopicSuccessfully } from '@/api/practice'
-import { startTarget as startTargetAPI, getUserBootRecordList } from '@/api/question'
+import { startTarget as startTargetAPI, getUserBootRecordList, stopTarget as stopTargetAPI } from '@/api/question'
 
 // 筛选条件
 const filters = reactive({
@@ -525,7 +525,7 @@ const refreshDynamics = () => {
 // 获取用户靶机状态
 const getTargetStatus = async () => {
   try {
-    const response = await getUserBootRecordList()
+    const response = await getUserBootRecordList({targetStatus: 1})
     if (response.data.code === 0) {
       const records = response.data.data.list || []
       // 查找正在运行的靶机 (targetStatus === 1 表示运行中)
@@ -539,8 +539,8 @@ const getTargetStatus = async () => {
         const elapsed = Math.floor((now - startTime) / 1000)
         const totalTime = 1800 // 30分钟
         remainingSec.value = Math.max(0, totalTime - elapsed)
-        
-        
+
+
         // 如果剩余时间大于0，启动计时器
         if (remainingSec.value > 0) {
           startTimer()
@@ -550,10 +550,14 @@ const getTargetStatus = async () => {
           currentTarget.value = null
           isTargetStarted.value = false
         }
-        
-        // 设置靶机地址 (这里需要根据实际API调整)
-        // 暂时设置为空，等后端提供expose字段
-        targetUrls.value = []
+
+        // 设置靶机地址
+        if (runningTarget.href) {
+          // href字段包含多个地址，用逗号分隔
+          targetUrls.value = runningTarget.href.split(',').map(url => url.trim())
+        } else {
+          targetUrls.value = []
+        }
       } else {
         currentTarget.value = null
         isTargetStarted.value = false
@@ -603,7 +607,7 @@ const openChallenge = (challenge) => {
 
   // 如果打开的是当前运行的靶机，不要重置状态
   const isCurrentTarget = currentTarget.value && currentTarget.value.titleId === challenge.ID
-  
+
   if (!isCurrentTarget) {
     // 只有打开其他题目时才重置状态
     stopTimer()
@@ -616,11 +620,11 @@ const openChallenge = (challenge) => {
 
 const onCloseChallenge = () => {
   isChallengeModalVisible.value = false
-  
+
   // 如果关闭的是当前运行的靶机，不要停止计时器
-  const isCurrentTarget = currentTarget.value && selectedChallenge.value && 
+  const isCurrentTarget = currentTarget.value && selectedChallenge.value &&
     currentTarget.value.titleId === selectedChallenge.value.ID
-  
+
   if (!isCurrentTarget) {
     stopTimer()
   }
@@ -676,12 +680,20 @@ const startTarget = async () => {
       isTargetStarted.value = true
 
       // 保存靶机访问地址
-      if (response.data.data && response.data.data.expose && response.data.data.expose.length > 0) {
+      if (response.data.data && response.data.data.href) {
+        // href字段包含多个地址，用逗号分隔
+        targetUrls.value = response.data.data.href.split(',').map(url => url.trim())
+        console.log('靶机访问地址列表:', targetUrls.value)
+      } else if (response.data.data && response.data.data.expose && response.data.data.expose.length > 0) {
+        // 兼容旧的expose字段
         targetUrls.value = response.data.data.expose
         console.log('靶机访问地址列表:', targetUrls.value)
       }
 
       Message.success('靶机启动成功！')
+      
+      // 启动成功后重新拉取靶机状态
+      await getTargetStatus()
     } else {
       Message.error(response.data.msg || '启动靶机失败')
       // 启动失败时停止计时
@@ -714,14 +726,36 @@ const extendTarget = async () => {
 
 const stopTarget = async () => {
   try {
-    // TODO: 调用后端API停止靶机
-    await new Promise(resolve => setTimeout(resolve, 500)) // 模拟API调用
 
-    isTargetStarted.value = false
-    stopTimer()
-    remainingSec.value = 0
+    // 调用后端API停止靶机
+    const requestData = {
+      // questionId: currentTarget.value.titleId
+    }
+
+    console.log('停止靶机请求参数:', requestData)
+
+    const response = await stopTargetAPI(requestData)
+
+    console.log('停止靶机响应:', response.data)
+
+    if (response.data.code === 0) {
+      // 停止成功，清除状态
+      currentTarget.value = null
+      isTargetStarted.value = false
+      stopTimer()
+      remainingSec.value = 0
+      targetUrls.value = []
+
+      Message.success('靶机已停止')
+      
+      // 停止成功后重新拉取靶机状态
+      await getTargetStatus()
+    } else {
+      Message.error(response.data.msg || '停止靶机失败')
+    }
   } catch (error) {
     console.error('停止靶机失败:', error)
+    Message.error('停止靶机失败，请重试')
   }
 }
 

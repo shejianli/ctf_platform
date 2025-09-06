@@ -46,9 +46,19 @@ export function startTarget(data) {
 }
 
 // 获取用户启动记录列表
-export function getUserBootRecordList() {
+export function getUserBootRecordList(params) {
   return request({
     url: '/Br/getUserBootRecordList',
-    method: 'get'
+    method: 'get',
+    params: params  // GET 请求使用 params
+  })
+}
+
+// 停止靶机
+export function stopTarget(data) {
+  return request({
+    url: '/Q/stopTarget',
+    method: 'post',
+    data
   })
 }

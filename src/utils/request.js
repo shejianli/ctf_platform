@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { Message } from '@arco-design/web-vue'
-import { getToken } from '@/utils/auth'
+import { getToken, removeToken } from '@/utils/auth'
+import router from '@/router'
 
 const service = axios.create({
   baseURL: 'http://192.168.31.228:8888'
@@ -31,6 +32,18 @@ service.interceptors.response.use(
   },
   error => {
     console.error('请求错误:', error)
+    
+    // 处理401未授权错误
+    if (error.response?.status === 401) {
+      Message.error('登录已过期，请重新登录')
+      // 清除本地token
+      removeToken()
+      // 跳转到登录页面
+      router.push('/login')
+      return Promise.reject(error)
+    }
+    
+    // 处理其他错误
     Message.error(error.response?.data?.message || '网络错误')
     return Promise.reject(error)
   }
