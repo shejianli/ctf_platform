@@ -268,44 +268,30 @@
         </div>
 
         <div class="panel-section">
-          <h3>🚀 在线靶场管理</h3>
+          <h3>🚀 已启动的靶场</h3>
           <div class="online-labs">
             <div
-              v-for="lab in onlineLabs"
-              :key="lab.id"
+              v-if="runningLab"
               class="online-lab-item"
             >
               <div class="online-lab-info">
-                <div class="online-lab-name">{{ lab.name }}</div>
+                <div class="online-lab-name">{{ runningLab.name }}</div>
                 <div class="online-lab-status">
-                  <span
-                    class="status-dot"
-                    :class="{ 'running': lab.isRunning, 'stopped': !lab.isRunning }"
-                  ></span>
-                  {{ lab.isRunning ? '运行中' : '已停止' }}
+                  <span class="status-dot running"></span>
+                  运行中
                 </div>
               </div>
               <div class="online-lab-actions">
                 <a-button
-                  v-if="!lab.isRunning"
                   size="small"
-                  type="primary"
-                  :loading="lab.starting"
-                  @click="startOnlineLab(lab)"
-                >
-                  启动
-                </a-button>
-                <a-button
-                  v-else
-                  size="small"
-                  @click="showInstanceInfo(lab)"
+                  @click="showInstanceInfo(runningLab)"
                 >
                   连接
                 </a-button>
               </div>
             </div>
-            <div v-if="onlineLabs.length === 0" class="no-online-labs">
-              暂无在线靶场
+            <div v-else class="no-online-labs">
+              暂无已启动的靶场
             </div>
           </div>
         </div>
@@ -344,55 +330,24 @@
     >
       <div v-if="selectedLab" class="lab-modal">
         <div class="modal-header">
-          <a-tag size="small">{{ getCategoryName(selectedLab.category) }}</a-tag>
-          <a-tag size="small" :color="getStatusColor(selectedLab.status)" class="ml8">
-            {{ getStatusText(selectedLab.status) }}
-          </a-tag>
-          <a-tag size="small" class="ml8">{{ getDifficultyName(selectedLab.difficulty) }}</a-tag>
-          <a-tag size="small" class="ml8">{{ selectedLab.os }}</a-tag>
+          <div class="header-tags">
+            <a-tag size="small">{{ getCategoryName(selectedLab.category) }}</a-tag>
+            <a-tag size="small" :color="getStatusColor(selectedLab.status)" class="ml8">
+              {{ getStatusText(selectedLab.status) }}
+            </a-tag>
+            <a-tag size="small" class="ml8">{{ getDifficultyName(selectedLab.difficulty) }}</a-tag>
+            <a-tag size="small" class="ml8">{{ selectedLab.os }}</a-tag>
+          </div>
+          <div class="header-stats">
+            <a-tag size="small" color="blue" class="solved-count">
+              <icon-user />
+              {{ selectedLab.solved }}人解决
+            </a-tag>
+          </div>
         </div>
 
         <div class="modal-body">
           <p class="desc">{{ selectedLab.description }}</p>
-
-          <div class="lab-details">
-            <h4>靶场信息</h4>
-            <div class="detail-grid">
-              <div class="detail-item">
-                <span class="label">操作系统：</span>
-                <span>{{ selectedLab.os }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="label">{{ selectedLab.type === 'online' ? '靶场状态：' : '文件大小：' }}</span>
-                <span v-if="selectedLab.type === 'online'">
-                  <a-tag :color="selectedLab.isRunning ? 'green' : 'orange'">
-                    {{ selectedLab.isRunning ? '🟢 运行中' : '⚪ 未启动' }}
-                  </a-tag>
-                </span>
-                <span v-else>{{ selectedLab.size }}</span>
-              </div>
-              <div class="detail-item" v-if="selectedLab.type === 'download'">
-                <span class="label">下载次数：</span>
-                <span>{{ selectedLab.downloads }}</span>
-              </div>
-              <div class="detail-item" v-if="selectedLab.type === 'online' && selectedLab.isRunning">
-                <span class="label">启动时间：</span>
-                <span>{{ selectedLab.instanceInfo?.startTime || '未知' }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="label">解决人数：</span>
-                <span>{{ selectedLab.solved }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="label">创建时间：</span>
-                <span>{{ selectedLab.createdAt }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="label">最后更新：</span>
-                <span>{{ selectedLab.updatedAt }}</span>
-              </div>
-            </div>
-          </div>
 
           <div class="lab-tags-section">
             <h4>标签</h4>
@@ -405,6 +360,54 @@
               >
                 {{ tag }}
               </a-tag>
+            </div>
+          </div>
+
+          <!-- 已启动的靶场信息 -->
+          <div v-if="selectedLab.type === 'online' && selectedLab.isRunning" class="active-target-info">
+            <div class="active-target-header">
+              <a-tag color="green" size="small">
+                <icon-play-circle />
+                靶场运行中
+              </a-tag>
+              <span class="target-title">{{ selectedLab.name }}</span>
+            </div>
+
+            <div class="active-target-details">
+              <div class="timer-info">
+                <span>剩余时间：</span>
+                <span class="time">{{ formatTime(remainingSec) }}</span>
+              </div>
+
+              <div v-if="targetUrls.length > 0" class="target-url-info">
+                <div class="url-label">靶场访问地址：</div>
+                <div
+                  v-for="(url, index) in targetUrls"
+                  :key="index"
+                  class="url-item"
+                >
+                  <a
+                    :href="url"
+                    target="_blank"
+                    class="target-link"
+                  >
+                    {{ url }}
+                  </a>
+                </div>
+              </div>
+
+              <div class="target-actions">
+                <a-button
+                  size="small"
+                  type="text"
+                  @click="extendTarget"
+                  :disabled="hasExtended"
+                  v-if="!hasExtended"
+                >
+                  续期 (剩余1次)
+                </a-button>
+                <a-button size="small" type="text" @click="stopTarget">停止靶场</a-button>
+              </div>
             </div>
           </div>
 
@@ -684,6 +687,11 @@ const onlineLabs = computed(() => {
   return vulnLabs.value.filter(lab => lab.type === 'online')
 })
 
+// 已启动的靶场（只显示一个）
+const runningLab = computed(() => {
+  return vulnLabs.value.find(lab => lab.type === 'online' && lab.isRunning)
+})
+
 // 过滤后的靶场
 const filteredLabs = computed(() => {
   let result = vulnLabs.value
@@ -783,10 +791,82 @@ const selectedLab = ref(null)
 const isInstanceModalVisible = ref(false)
 const selectedInstance = ref(null)
 
+// 靶场运行相关
+const remainingSec = ref(0)
+const targetUrls = ref([])
+const hasExtended = ref(false)
+let countdownTimer = null
+
+// 时间格式化函数
+const formatTime = (total) => {
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const seconds = total % 60
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+}
+
+// 启动计时器
+const startTimer = () => {
+  stopTimer()
+  countdownTimer = setInterval(() => {
+    if (remainingSec.value > 0) {
+      remainingSec.value -= 1
+    } else {
+      stopTimer()
+      // 时间到了，停止靶场
+      if (selectedLab.value) {
+        selectedLab.value.isRunning = false
+        selectedLab.value.instanceInfo = null
+        targetUrls.value = []
+      }
+    }
+  }, 1000)
+}
+
+// 停止计时器
+const stopTimer = () => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+}
+
 // 打开靶场详情
 const openLab = (lab) => {
   selectedLab.value = lab
+  
+  // 如果是运行中的靶场，设置计时器
+  if (lab.isRunning && lab.instanceInfo) {
+    // 计算剩余时间（假设30分钟）
+    const startTime = new Date(lab.instanceInfo.startTime).getTime()
+    const now = Date.now()
+    const elapsed = Math.floor((now - startTime) / 1000)
+    const totalTime = 1800 // 30分钟
+    remainingSec.value = Math.max(0, totalTime - elapsed)
+    
+    if (remainingSec.value > 0) {
+      startTimer()
+    }
+    
+    // 设置靶场地址
+    if (lab.instanceInfo.accessUrl) {
+      targetUrls.value = [lab.instanceInfo.accessUrl]
+    }
+  } else {
+    // 重置状态
+    remainingSec.value = 0
+    targetUrls.value = []
+    stopTimer()
+  }
+  
   isLabModalVisible.value = true
+}
+
+// 关闭靶场详情
+const closeLab = () => {
+  isLabModalVisible.value = false
+  // 不停止计时器，让靶场继续运行
 }
 
 // 下载靶场
@@ -819,6 +899,13 @@ const startOnlineLab = async (lab) => {
     return
   }
 
+  // 检查是否已有其他靶场在运行
+  const existingRunningLab = vulnLabs.value.find(l => l.type === 'online' && l.isRunning)
+  if (existingRunningLab) {
+    Message.warning('同时只能启动一个靶场，请先停止当前运行的靶场')
+    return
+  }
+
   try {
     lab.starting = true
     console.log('启动在线靶场:', lab.name)
@@ -834,6 +921,14 @@ const startOnlineLab = async (lab) => {
         webInfo: { username: 'admin', password: 'admin' },
         sshInfo: { host: 'localhost', port: 22, username: 'root', password: 'password' }
       }
+      
+      // 设置计时器（30分钟）
+      remainingSec.value = 1800
+      startTimer()
+      
+      // 设置靶场地址
+      targetUrls.value = [lab.instanceInfo.accessUrl]
+      
       Message.success(`靶场 ${lab.name} 启动成功！`)
     }, 2000)
 
@@ -873,6 +968,46 @@ SSH连接:
   }).catch(() => {
     Message.error('复制失败，请手动复制')
   })
+}
+
+// 续期靶场
+const extendTarget = async () => {
+  try {
+    await new Promise(resolve => setTimeout(resolve, 500)) // 模拟API调用
+    
+    remainingSec.value = 1800 // 续期30分钟
+    hasExtended.value = true
+    startTimer()
+    
+    Message.success('靶场已续期30分钟')
+  } catch (error) {
+    console.error('续期靶场失败:', error)
+    Message.error('续期靶场失败')
+  }
+}
+
+// 停止靶场
+const stopTarget = async () => {
+  if (!selectedLab.value) return
+
+  try {
+    console.log('停止靶场:', selectedLab.value.name)
+
+    // 停止靶场
+    selectedLab.value.isRunning = false
+    selectedLab.value.instanceInfo = null
+    
+    // 重置状态
+    stopTimer()
+    remainingSec.value = 0
+    targetUrls.value = []
+    hasExtended.value = false
+
+    Message.success('靶场已停止')
+  } catch (error) {
+    console.error('停止靶场失败:', error)
+    Message.error(`停止靶场失败: ${error.message}`)
+  }
 }
 
 // 停止靶场实例
@@ -1352,8 +1487,31 @@ onMounted(() => {
 /* 弹窗样式 */
 .lab-modal .modal-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.header-stats {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.solved-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
 }
 
 /* 实例弹窗样式 */
@@ -1415,6 +1573,91 @@ onMounted(() => {
 }
 
 .ml8 { margin-left: 8px; }
+
+/* 靶场运行信息样式 */
+.active-target-info {
+  background: var(--color-fill-1);
+  border: 1px solid var(--color-primary-3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.active-target-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.target-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.active-target-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timer-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--color-text-2);
+}
+
+.timer-info .time {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: var(--color-primary-6);
+  background: var(--color-primary-light-1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.target-url-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.url-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-2);
+}
+
+.url-item {
+  display: flex;
+  align-items: center;
+}
+
+.target-link {
+  color: var(--color-primary-6);
+  text-decoration: none;
+  font-family: 'Courier New', monospace;
+  background: var(--color-fill-2);
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+  transition: all 0.2s;
+}
+
+.target-link:hover {
+  background: var(--color-primary-light-1);
+  border-color: var(--color-primary-5);
+  text-decoration: none;
+}
+
+.target-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
 
 .lab-modal .desc {
   color: var(--color-text-2);
