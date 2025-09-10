@@ -49,3 +49,29 @@ export function getDifficultyLevels() {
     method: 'get'
   })
 }
+
+/**
+ * 启动漏洞靶机
+ * @param {Object} data
+ * @returns {Promise}
+ */
+export function startVulnTarget(data = {}) {
+  return request({
+    url: `${BASE_URL}/VbR/startVulnTarget`,
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 停止漏洞靶机
+ * @param {Object} data
+ * @returns {Promise}
+ */
+export function stopVulnTarget(data = {}) {
+  return request({
+    url: `${BASE_URL}/VbR/stopVulnTarget`,
+    method: 'post',
+    data
+  })
+}

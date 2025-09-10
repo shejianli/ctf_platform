@@ -534,6 +534,7 @@ import {
   getVulnLabs,
 } from '@/api/vulnlab'
 import { getDifficultyLevels, getQuestionClasses } from '@/api/practice'
+import { startVulnTarget, stopVulnTarget } from '@/api/vulnlab'
 
 // 筛选条件
 const filters = reactive({
@@ -908,29 +909,46 @@ const startOnlineLab = async (lab) => {
 
   try {
     lab.starting = true
-    console.log('启动在线靶场:', lab.name)
+    const payload = { vulnId: lab.id }
+    const resp = await startVulnTarget(payload)
+    if (resp.data?.code !== 0) {
+      throw new Error(resp.data?.msg || '启动失败')
+    }
 
-    // 模拟启动成功
-    setTimeout(() => {
-      lab.isRunning = true
-      lab.starting = false
-      lab.instanceInfo = {
-        id: Date.now(),
-        startTime: new Date().toLocaleString(),
-        accessUrl: 'http://localhost:8080',
-        webInfo: { username: 'admin', password: 'admin' },
-        sshInfo: { host: 'localhost', port: 22, username: 'root', password: 'password' }
-      }
-      
-      // 设置计时器（30分钟）
+    // 后端返回实例信息（示例：{ href: 'http://...', startupTime: '...', expose: [] }）
+    const data = resp.data.data || {}
+    lab.isRunning = true
+    lab.starting = false
+    lab.instanceInfo = {
+      id: data.id || Date.now(),
+      startTime: data.startupTime || new Date().toISOString(),
+      accessUrl: data.href || (Array.isArray(data.expose) ? data.expose[0] : ''),
+      webInfo: data.webInfo || {},
+      sshInfo: data.sshInfo || {}
+    }
+
+    // 计算或设置倒计时（默认30分钟，或根据后端时间计算）
+    if (data.startupTime) {
+      const start = new Date(data.startupTime).getTime()
+      const now = Date.now()
+      const elapsed = Math.floor((now - start) / 1000)
+      const total = 1800
+      remainingSec.value = Math.max(0, total - elapsed)
+    } else {
       remainingSec.value = 1800
-      startTimer()
-      
-      // 设置靶场地址
+    }
+    startTimer()
+
+    // 设置访问地址
+    if (lab.instanceInfo.accessUrl) {
       targetUrls.value = [lab.instanceInfo.accessUrl]
-      
-      Message.success(`靶场 ${lab.name} 启动成功！`)
-    }, 2000)
+    } else if (Array.isArray(data.expose) && data.expose.length > 0) {
+      targetUrls.value = data.expose
+    } else {
+      targetUrls.value = []
+    }
+
+    Message.success(`靶场 ${lab.name} 启动成功！`)
 
   } catch (error) {
     console.error('启动靶场失败:', error)
@@ -991,13 +1009,15 @@ const stopTarget = async () => {
   if (!selectedLab.value) return
 
   try {
-    console.log('停止靶场:', selectedLab.value.name)
+    const payload = { vulnerabilityShootingId: selectedLab.value.id }
+    const resp = await stopVulnTarget(payload)
+    if (resp.data?.code !== 0) {
+      throw new Error(resp.data?.msg || '停止失败')
+    }
 
-    // 停止靶场
     selectedLab.value.isRunning = false
     selectedLab.value.instanceInfo = null
-    
-    // 重置状态
+
     stopTimer()
     remainingSec.value = 0
     targetUrls.value = []
